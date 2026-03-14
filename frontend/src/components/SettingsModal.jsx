@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { X, Plus, Trash2, Edit2, Check, BrainCircuit, Key, FileText, Settings, Loader2, Send, Bot, User, CheckCircle2 } from 'lucide-react';
 
-export default function SettingsModal({ isOpen, onClose, apiKey, setApiKey, prompts, setPrompts, resumeText, jobText }) {
+export default function SettingsModal({ isOpen, onClose, apiKey, setApiKey, prompts, setPrompts }) {
     const [localKey, setLocalKey] = useState(apiKey);
     const [localPrompts, setLocalPrompts] = useState(prompts);
     const [careerFacts, setCareerFacts] = useState(() => {
@@ -21,7 +21,7 @@ export default function SettingsModal({ isOpen, onClose, apiKey, setApiKey, prom
 
     // Chat State
     const [chatMessages, setChatMessages] = useState([
-        { role: 'assistant', text: "Hi! I'm your Career Assistant. I can see your current resume and job target. How can I help you optimize your profile today?" }
+        { role: 'assistant', text: "Hi! I'm your Career Assistant. Tell me about your recent projects or how you want to tweak your resume." }
     ]);
     const [chatInput, setChatInput] = useState('');
     const [isThinking, setIsThinking] = useState(false);
@@ -114,50 +114,26 @@ export default function SettingsModal({ isOpen, onClose, apiKey, setApiKey, prom
                     'Content-Type': 'application/json',
                     'X-Gemini-API-Key': localKey
                 },
-                body: JSON.stringify({
-                    message: userMsg,
-                    resume_text: resumeText,
-                    job_description_text: jobText,
-                    current_facts: careerFacts
-                })
+                body: JSON.stringify({ message: userMsg })
             });
 
             if (!res.ok) throw new Error('Failed to reach assistant');
             const data = await res.json();
 
-            const newMessage = {
-                role: 'assistant',
-                text: data.response,
-                draft: data.action !== 'none' ? { type: data.action, content: data.content } : null
-            };
+            setChatMessages(prev => [...prev, { role: 'assistant', text: data.response }]);
 
-            setChatMessages(prev => [...prev, newMessage]);
+            if (data.action === 'add_fact' && data.content) {
+                setCareerFacts(prev => [...prev, data.content]);
+            } else if (data.action === 'tweak_resume' && data.content) {
+                localStorage.setItem('sessionInstructions', data.content);
+                // Also update App state if we had a way, but since it's in localStorage, 
+                // handleGenerate in App.jsx will pick it up next time.
+            }
         } catch (err) {
             setChatMessages(prev => [...prev, { role: 'assistant', text: "Sorry, I lost my connection. Is your API key correct?" }]);
         } finally {
             setIsThinking(false);
         }
-    };
-
-    const confirmDraft = (draft, msgIdx) => {
-        if (draft.type === 'draft_fact') {
-            setCareerFacts(prev => [...prev, draft.content]);
-        } else if (draft.type === 'draft_tweak') {
-            localStorage.setItem('sessionInstructions', draft.content);
-        }
-
-        // Remove draft button from message after confirmation
-        const updatedMessages = [...chatMessages];
-        updatedMessages[msgIdx].draft = null;
-        updatedMessages[msgIdx].confirmed = true;
-        setChatMessages(updatedMessages);
-    };
-
-    const discardDraft = (msgIdx) => {
-        const updatedMessages = [...chatMessages];
-        updatedMessages[msgIdx].draft = null;
-        updatedMessages[msgIdx].discarded = true;
-        setChatMessages(updatedMessages);
     };
 
     return (
@@ -302,51 +278,13 @@ export default function SettingsModal({ isOpen, onClose, apiKey, setApiKey, prom
                                     <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
                                         {chatMessages.map((msg, idx) => (
                                             <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-in slide-in-from-bottom-2 duration-300`}>
-                                                <div className={`flex flex-col gap-2 max-w-[85%] ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
-                                                    <div className={`flex gap-2 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
-                                                        <div className={`h-6 w-6 rounded-full flex items-center justify-center shrink-0 mt-1 ${msg.role === 'user' ? 'bg-slate-200' : 'bg-primary'}`}>
-                                                            {msg.role === 'user' ? <User size={12} className="text-slate-600" /> : <Bot size={12} className="text-white" />}
-                                                        </div>
-                                                        <div className={`p-2.5 rounded-2xl text-[11px] leading-relaxed shadow-sm ${msg.role === 'user' ? 'bg-slate-900 text-white rounded-tr-none' : 'bg-white border border-slate-200 text-slate-700 rounded-tl-none'}`}>
-                                                            {msg.text}
-                                                        </div>
+                                                <div className={`flex gap-2 max-w-[85%] ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
+                                                    <div className={`h-6 w-6 rounded-full flex items-center justify-center shrink-0 mt-1 ${msg.role === 'user' ? 'bg-slate-200' : 'bg-primary'}`}>
+                                                        {msg.role === 'user' ? <User size={12} className="text-slate-600" /> : <Bot size={12} className="text-white" />}
                                                     </div>
-                                                    {msg.draft && (
-                                                        <div className="ml-8 mt-1 p-3 bg-blue-50 border border-blue-200 rounded-xl space-y-2 animate-in fade-in zoom-in-95 duration-300 shadow-sm self-stretch">
-                                                            <div className="flex items-center gap-2 text-[10px] font-bold text-blue-700 uppercase tracking-wider mb-1">
-                                                                <Edit2 size={12} /> Proposed {msg.draft.type === 'draft_fact' ? 'Career Fact' : 'Style Tweak'}
-                                                            </div>
-                                                            <p className="text-[11px] text-blue-900 border-l-2 border-blue-300 pl-2 py-1 bg-white/50 rounded-r-md italic">
-                                                                "{msg.draft.content}"
-                                                            </p>
-                                                            <div className="flex gap-2 pt-1">
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => confirmDraft(msg.draft, idx)}
-                                                                    className="flex-1 bg-blue-600 text-white py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all hover:bg-blue-700 flex items-center justify-center gap-1"
-                                                                >
-                                                                    <Check size={12} /> Confirm {msg.draft.type === 'draft_fact' ? 'Add' : 'Use'}
-                                                                </button>
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => discardDraft(idx)}
-                                                                    className="px-3 bg-white text-slate-500 border border-slate-200 py-1.5 rounded-lg text-[10px] font-bold uppercase hover:bg-slate-50 transition-all"
-                                                                >
-                                                                    Discard
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                    {msg.confirmed && (
-                                                        <div className="ml-8 mt-1 flex items-center gap-1.5 text-[10px] font-bold text-green-600 uppercase tracking-widest pl-1 transition-all animate-in fade-in slide-in-from-left-2">
-                                                            <CheckCircle2 size={12} /> Applied to {msg.confirmed === 'draft_fact' ? 'Knowledge Base' : 'Session'}
-                                                        </div>
-                                                    )}
-                                                    {msg.discarded && (
-                                                        <div className="ml-8 mt-1 flex items-center gap-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-1">
-                                                            <X size={12} /> Suggestion Discarded
-                                                        </div>
-                                                    )}
+                                                    <div className={`p-2.5 rounded-2xl text-[11px] leading-relaxed shadow-sm ${msg.role === 'user' ? 'bg-slate-900 text-white rounded-tr-none' : 'bg-white border border-slate-200 text-slate-700 rounded-tl-none'}`}>
+                                                        {msg.text}
+                                                    </div>
                                                 </div>
                                             </div>
                                         ))}
@@ -378,7 +316,7 @@ export default function SettingsModal({ isOpen, onClose, apiKey, setApiKey, prom
                                         <button
                                             type="submit"
                                             disabled={!chatInput.trim() || isThinking}
-                                            className="p-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition-all disabled:opacity-50 flex items-center justify-center shadow-sm"
+                                            className="p-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition-all disabled:opacity-50 flex items-center justify-center"
                                         >
                                             <Send size={14} />
                                         </button>
@@ -450,6 +388,4 @@ SettingsModal.propTypes = {
     setApiKey: PropTypes.func.isRequired,
     prompts: PropTypes.object.isRequired,
     setPrompts: PropTypes.func.isRequired,
-    resumeText: PropTypes.string,
-    jobText: PropTypes.string,
 };

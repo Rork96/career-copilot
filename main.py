@@ -39,12 +39,9 @@ class AIRequestModel(BaseModel):
 
 class AssistantChatRequest(BaseModel):
     message: str
-    resume_text: Optional[str] = None
-    job_description_text: Optional[str] = None
-    current_facts: Optional[list[str]] = None
 
 class AssistantChatResponse(BaseModel):
-    action: str  # "draft_fact" | "draft_tweak" | "none"
+    action: str  # "add_fact" | "tweak_resume" | "none"
     content: Optional[str] = None
     response: str
 
@@ -68,42 +65,30 @@ async def assistant_chat(
     request: AssistantChatRequest,
     x_gemini_api_key: Annotated[Optional[str], Header()] = None
 ):
-    """Processes AI Career Assistant chat messages with session context."""
+    """Processes AI Career Assistant chat messages."""
     if not x_gemini_api_key:
         raise HTTPException(status_code=400, detail="X-Gemini-API-Key header is missing")
     
     try:
         model = _init_gemini(x_gemini_api_key)
-        
-        context_block = ""
-        if request.resume_text and request.job_description_text:
-            context_block = f"""
-CURRENT CONTEXT:
-Job Description: {request.job_description_text[:1000]}...
-Current Resume: {request.resume_text[:1000]}...
-Existing Knowledge Base Facts: {json.dumps(request.current_facts or [])}
-"""
-
-        prompt = f"""You are a helpful AI Career Assistant. Your job is to:
-1. Distinguish between 'General Questions' and 'Data Commands'.
-2. If the user wants to add/update an achievement, propose a 'draft_fact'.
-3. If the user wants to change optimization style (e.g., 'make it punchier'), propose a 'draft_tweak'.
-4. If it's a general question or advice, set action to 'none'.
+        prompt = f"""You are a helpful AI Career Assistant. Your job is to listen to the user and either:
+1. Extract a "Career Fact" if they share a new achievement or skill (e.g., "I led a team of 5").
+2. Identify a "Resume Tweak" if they want to change how their resume is optimized (e.g., "Make it more technical").
 
 User Message: "{request.message}"
-{context_block}
 
-Return strictly a JSON object:
+Return strictly a JSON object with this exact structure:
 {{
-  "action": "draft_fact" | "draft_tweak" | "none",
-  "content": "The proposed fact/tweak (if applicable)",
-  "response": "Your conversational response or advice"
+  "action": "add_fact" or "tweak_resume" or "none",
+  "content": "The cleaned fact or tweak instruction",
+  "response": "A brief, encouraging confirmation for the user"
 }}
 
 Rules:
-- If drafting a fact, rewrite it to follow the [Action Verb] + [Result] formula if enough info is provided.
-- If the user asks for advice based on their match, analyze the JD/Resume context provided.
-- Keep responses concise and encouraging.
+- If the user shares an achievement, set action to "add_fact" and clean up the fact to be a standalone bullet point.
+- If the user gives a style instruction, set action to "tweak_resume".
+- If it's general chat, set action to "none".
+- Keep response under 15 words.
 """
         response = model.generate_content(prompt)
         match = re.search(r'\{.*\}', response.text, re.DOTALL)
@@ -114,7 +99,7 @@ Rules:
         return {
             "action": parsed.get("action", "none"),
             "content": parsed.get("content"),
-            "response": parsed.get("response", "I'm here to help!")
+            "response": parsed.get("response", "I'm here to help with your career!")
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

@@ -336,8 +336,6 @@ function App() {
         setApiKey={setApiKey}
         prompts={prompts}
         setPrompts={setPrompts}
-        resumeText={resumeText}
-        jobText={jobText}
       />
     </div>
   );

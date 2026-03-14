@@ -44,6 +44,7 @@ function App() {
     retrievedAchievements: [],
     bulletComparisons: [],
     missingSkills: [],
+    research: null,
     coverLetter: null,
     interview: null
   });
@@ -142,7 +143,9 @@ function App() {
         missing_hard_skills: resumeRes.data.missing_hard_skills || [],
         keyword_optimizations: resumeRes.data.keyword_optimizations || [],
         recommendations: resumeRes.data.recommendations || [],
+        keywordMatrix: resumeRes.data.keyword_matrix || [],
         detected_tone: resumeRes.data.detected_tone,
+        research: null,
         coverLetter: null, // Reset generated assets
         interview: null
       });
@@ -345,7 +348,7 @@ function App() {
       />
 
       {/* Floating AI Assistant - Only on results screen */}
-      {currentScreen === 'results' && <FloatingChat />}
+      {currentScreen === 'results' && <FloatingChat onRegenerate={handleGenerate} />}
     </div>
   );
 }

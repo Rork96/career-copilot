@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import { MessageSquare, X, Send, Bot, User, BrainCircuit, Plus, Trash2, Edit2, Check, Loader2 } from 'lucide-react';
+import { MessageSquare, X, Send, Bot, User, BrainCircuit, Plus, Trash2, Edit2, Check, Loader2, RefreshCw } from 'lucide-react';
 
-export default function FloatingChat() {
+export default function FloatingChat({ onRegenerate }) {
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('chat'); // chat, knowledge
   const [messages, setMessages] = useState([
@@ -53,7 +53,7 @@ export default function FloatingChat() {
       if (!res.ok) throw new Error('Failed to reach assistant');
       const data = await res.json();
 
-      setMessages(prev => [...prev, { role: 'assistant', text: data.response }]);
+      setMessages(prev => [...prev, { role: 'assistant', text: data.response, action: data.action }]);
 
       // Handle AI actions (like adding facts automatically)
       if (data.action === 'add_fact' && data.content) {
@@ -156,8 +156,21 @@ export default function FloatingChat() {
                       <div className={`h-8 w-8 rounded-full flex items-center justify-center shrink-0 mt-1 ${msg.role === 'user' ? 'bg-slate-200' : 'bg-primary'}`}>
                         {msg.role === 'user' ? <User size={16} className="text-slate-600" /> : <Bot size={16} className="text-white" />}
                       </div>
-                      <div className={`p-3 rounded-2xl text-sm leading-relaxed shadow-sm ${msg.role === 'user' ? 'bg-slate-900 text-white rounded-tr-none' : 'bg-white border border-slate-200 text-slate-700 rounded-tl-none'}`}>
-                        {msg.text}
+                      <div className="space-y-2 max-w-[85%]">
+                        <div className={`p-3 rounded-2xl text-sm leading-relaxed shadow-sm ${msg.role === 'user' ? 'bg-slate-900 text-white rounded-tr-none' : 'bg-white border border-slate-200 text-slate-700 rounded-tl-none'}`}>
+                          {msg.text}
+                        </div>
+                        {msg.role === 'assistant' && msg.action === 'add_fact' && (
+                          <button
+                            onClick={() => {
+                              onRegenerate?.();
+                              setIsOpen(false);
+                            }}
+                            className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-primary hover:bg-primary hover:text-white rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all border border-blue-100 shadow-sm"
+                          >
+                            <RefreshCw size={12} /> Regenerate Resume
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>

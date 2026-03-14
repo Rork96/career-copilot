@@ -6,6 +6,7 @@ import ResumeInput from './components/ResumeInput';
 import JobInput from './components/JobInput';
 import SettingsModal from './components/SettingsModal';
 import ResultTabs from './components/ResultTabs';
+import FloatingChat from './components/FloatingChat';
 import './App.css';
 
 const API_BASE = 'http://localhost:8000/api';
@@ -37,7 +38,8 @@ function App() {
   const [errorMsg, setErrorMsg] = useState('');
   const [results, setResults] = useState({
     resume: '',
-    atsScore: 0,
+    original_ats_score: 0,
+    optimized_ats_score: 0,
     changesSummary: [],
     retrievedAchievements: [],
     bulletComparisons: [],
@@ -132,11 +134,15 @@ function App() {
 
       setResults({
         resume: resumeRes.data.optimized_markdown,
-        atsScore: resumeRes.data.ats_match_percentage,
+        original_ats_score: resumeRes.data.original_ats_score,
+        optimized_ats_score: resumeRes.data.optimized_ats_score,
         changesSummary: resumeRes.data.changes_summary || [],
         retrievedAchievements: resumeRes.data.retrieved_achievements || [],
         bulletComparisons: resumeRes.data.bullet_comparisons || [],
-        missing_skills: resumeRes.data.missing_skills || [],
+        missing_hard_skills: resumeRes.data.missing_hard_skills || [],
+        keyword_optimizations: resumeRes.data.keyword_optimizations || [],
+        recommendations: resumeRes.data.recommendations || [],
+        detected_tone: resumeRes.data.detected_tone,
         coverLetter: null, // Reset generated assets
         interview: null
       });
@@ -322,7 +328,7 @@ function App() {
       {showFAB && (
         <button
           onClick={scrollToTop}
-          className="fixed bottom-6 right-6 p-3 bg-slate-800 text-white rounded-full shadow-lg hover:bg-slate-700 hover:-translate-y-1 transition-all z-50 flex items-center justify-center"
+          className="fixed bottom-24 right-6 p-3 bg-slate-800 text-white rounded-full shadow-lg hover:bg-slate-700 hover:-translate-y-1 transition-all z-50 flex items-center justify-center"
           title="Scroll to top"
         >
           <ArrowUp size={24} />
@@ -337,6 +343,9 @@ function App() {
         prompts={prompts}
         setPrompts={setPrompts}
       />
+
+      {/* Floating AI Assistant - Only on results screen */}
+      {currentScreen === 'results' && <FloatingChat />}
     </div>
   );
 }

@@ -5,33 +5,10 @@ import { X, Plus, Trash2, Edit2, Check, BrainCircuit, Key, FileText, Settings, L
 export default function SettingsModal({ isOpen, onClose, apiKey, setApiKey, prompts, setPrompts }) {
     const [localKey, setLocalKey] = useState(apiKey);
     const [localPrompts, setLocalPrompts] = useState(prompts);
-    const [careerFacts, setCareerFacts] = useState(() => {
-        const saved = localStorage.getItem('careerFacts');
-        return saved ? JSON.parse(saved) : [
-            "Spearheaded a cloud migration for a global fintech firm, reducing infrastructure overhead by 32%.",
-            "Engineered a high-throughput data ingestion pipeline in Go, processing 500k+ events/sec."
-        ];
-    });
-    const [newFact, setNewFact] = useState('');
-    const [editingIdx, setEditingIdx] = useState(null);
     const [savedMessage, setSavedMessage] = useState('');
-    const [activeTab, setActiveTab] = useState('api'); // api, facts, prompts
     const [testStatus, setTestStatus] = useState('idle'); // idle, testing, success, error
     const [testError, setTestError] = useState('');
 
-    // Chat State
-    const [chatMessages, setChatMessages] = useState([
-        { role: 'assistant', text: "Hi! I'm your Career Assistant. Tell me about your recent projects or how you want to tweak your resume." }
-    ]);
-    const [chatInput, setChatInput] = useState('');
-    const [isThinking, setIsThinking] = useState(false);
-    const chatEndRef = useRef(null);
-
-    useEffect(() => {
-        if (chatEndRef.current) {
-            chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
-        }
-    }, [chatMessages]);
 
     if (!isOpen) return null;
 
@@ -41,7 +18,6 @@ export default function SettingsModal({ isOpen, onClose, apiKey, setApiKey, prom
         setApiKey(localKey);
         localStorage.setItem('careerCopilotPrompts', JSON.stringify(localPrompts));
         setPrompts(localPrompts);
-        localStorage.setItem('careerFacts', JSON.stringify(careerFacts));
 
         setSavedMessage('Settings preserved!');
         setTimeout(() => {
@@ -70,71 +46,6 @@ export default function SettingsModal({ isOpen, onClose, apiKey, setApiKey, prom
         }
     };
 
-    const addFact = () => {
-        if (newFact.trim()) {
-            setCareerFacts([...careerFacts, newFact.trim()]);
-            setNewFact('');
-        }
-    };
-
-    const removeFact = (idx) => {
-        setCareerFacts(careerFacts.filter((_, i) => i !== idx));
-    };
-
-    const startEditing = (idx) => {
-        setEditingIdx(idx);
-        setNewFact(careerFacts[idx]);
-    };
-
-    const saveEdit = () => {
-        const updated = [...careerFacts];
-        updated[editingIdx] = newFact.trim();
-        setCareerFacts(updated);
-        setEditingIdx(null);
-        setNewFact('');
-    };
-
-    const handlePromptChange = (key, value) => {
-        setLocalPrompts(prev => ({ ...prev, [key]: value }));
-    };
-
-    const handleSendChat = async (e) => {
-        e.preventDefault();
-        if (!chatInput.trim() || isThinking) return;
-
-        const userMsg = chatInput.trim();
-        setChatMessages(prev => [...prev, { role: 'user', text: userMsg }]);
-        setChatInput('');
-        setIsThinking(true);
-
-        try {
-            const res = await fetch('http://localhost:8000/api/assistant/chat', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-Gemini-API-Key': localKey
-                },
-                body: JSON.stringify({ message: userMsg })
-            });
-
-            if (!res.ok) throw new Error('Failed to reach assistant');
-            const data = await res.json();
-
-            setChatMessages(prev => [...prev, { role: 'assistant', text: data.response }]);
-
-            if (data.action === 'add_fact' && data.content) {
-                setCareerFacts(prev => [...prev, data.content]);
-            } else if (data.action === 'tweak_resume' && data.content) {
-                localStorage.setItem('sessionInstructions', data.content);
-                // Also update App state if we had a way, but since it's in localStorage, 
-                // handleGenerate in App.jsx will pick it up next time.
-            }
-        } catch (err) {
-            setChatMessages(prev => [...prev, { role: 'assistant', text: "Sorry, I lost my connection. Is your API key correct?" }]);
-        } finally {
-            setIsThinking(false);
-        }
-    };
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 text-slate-900">
@@ -151,212 +62,51 @@ export default function SettingsModal({ isOpen, onClose, apiKey, setApiKey, prom
                     </button>
                 </div>
 
-                {/* TABS */}
-                <div className="flex gap-4 px-6 border-b border-slate-200 mt-2">
-                    <button
-                        onClick={() => setActiveTab('api')}
-                        className={`pb-2 px-1 text-xs font-bold uppercase tracking-wider transition-all border-b-2 ${activeTab === 'api' ? 'border-primary text-primary' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
-                    >
-                        <div className="flex items-center gap-2">
-                            <Key size={14} /> API Config
-                        </div>
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('facts')}
-                        className={`pb-2 px-1 text-xs font-bold uppercase tracking-wider transition-all border-b-2 ${activeTab === 'facts' ? 'border-primary text-primary' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
-                    >
-                        <div className="flex items-center gap-2">
-                            <BrainCircuit size={14} /> Knowledge Base
-                        </div>
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('prompts')}
-                        className={`pb-2 px-1 text-xs font-bold uppercase tracking-wider transition-all border-b-2 ${activeTab === 'prompts' ? 'border-primary text-primary' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
-                    >
-                        <div className="flex items-center gap-2">
-                            <FileText size={14} /> Instructions
-                        </div>
-                    </button>
-                </div>
 
                 <div className="flex-1 overflow-y-auto p-6 scrollbar-hide">
                     <form onSubmit={handleSave} className="space-y-6">
-                        {activeTab === 'api' && (
-                            <div className="max-w-xl mx-auto space-y-4 animate-in fade-in duration-300">
-                                <div>
-                                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Google Gemini API Key</label>
-                                    <div className="flex gap-2">
-                                        <input
-                                            type="password"
-                                            value={localKey}
-                                            onChange={(e) => setLocalKey(e.target.value)}
-                                            placeholder="AIzaSy..."
-                                            className="flex-1 px-4 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-slate-900"
-                                        />
-                                        <button
-                                            type="button"
-                                            onClick={testConnection}
-                                            disabled={testStatus === 'testing' || !localKey}
-                                            className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2 border ${testStatus === 'success' ? 'bg-green-50 border-green-200 text-green-700' :
-                                                testStatus === 'error' ? 'bg-red-50 border-red-200 text-red-700' :
-                                                    'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
-                                                }`}
-                                        >
-                                            {testStatus === 'testing' ? <Loader2 size={14} className="animate-spin" /> : null}
-                                            {testStatus === 'success' ? <Check size={14} /> : null}
-                                            {testStatus === 'error' ? <X size={14} /> : null}
-                                            Test Connection
-                                        </button>
-                                    </div>
-                                    {testError && <p className="text-[10px] text-red-500 mt-1 font-medium">{testError}</p>}
-                                    <p className="text-[10px] text-slate-400 mt-2 leading-relaxed">
-                                        Your key is stored locally in your browser and sent only in headers to facilitate stateless, multi-user requests.
-                                    </p>
-                                </div>
-                            </div>
-                        )}
-
-                        {activeTab === 'facts' && (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-in fade-in duration-300">
-                                {/* LEFT: FACTS LIST */}
-                                <div className="space-y-4 flex flex-col h-[400px]">
-                                    <div className="flex justify-between items-center">
-                                        <h3 className="text-sm font-bold text-slate-800">Knowledge Base</h3>
-                                        <span className="text-[10px] bg-slate-100 px-2 py-0.5 rounded-full font-bold text-slate-500">{careerFacts.length} Facts</span>
-                                    </div>
-
-                                    <div className="flex-1 space-y-2 overflow-y-auto pr-2 custom-scrollbar">
-                                        {careerFacts.map((fact, idx) => (
-                                            <div key={idx} className="flex items-center gap-2 p-2 bg-slate-50 border border-slate-100 rounded-lg group hover:border-primary/20 transition-colors">
-                                                <p className="flex-1 text-[11px] text-slate-600 leading-tight">{fact}</p>
-                                                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    <button type="button" onClick={() => startEditing(idx)} className="p-1 text-slate-400 hover:text-primary"><Edit2 size={12} /></button>
-                                                    <button type="button" onClick={() => removeFact(idx)} className="p-1 text-slate-400 hover:text-red-500"><Trash2 size={12} /></button>
-                                                </div>
-                                            </div>
-                                        ))}
-                                        {careerFacts.length === 0 && (
-                                            <div className="text-center py-8 border-2 border-dashed border-slate-100 rounded-xl">
-                                                <p className="text-[10px] text-slate-400 font-medium">No facts added yet.</p>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    <div className="flex gap-2 py-2 border-t border-slate-100 mt-auto">
-                                        <input
-                                            type="text"
-                                            value={newFact}
-                                            onChange={(e) => setNewFact(e.target.value)}
-                                            placeholder="Manually add a fact..."
-                                            className="flex-1 px-3 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-1 focus:ring-primary outline-none"
-                                            onKeyDown={(e) => {
-                                                if (e.key === 'Enter') {
-                                                    e.preventDefault();
-                                                    editingIdx !== null ? saveEdit() : addFact();
-                                                }
-                                            }}
-                                        />
-                                        <button
-                                            type="button"
-                                            onClick={editingIdx !== null ? saveEdit : addFact}
-                                            className="p-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-all flex items-center justify-center shrink-0"
-                                        >
-                                            {editingIdx !== null ? <Check size={14} /> : <Plus size={14} />}
-                                        </button>
-                                    </div>
-                                </div>
-
-                                {/* RIGHT: AI CHAT */}
-                                <div className="bg-slate-50 border border-slate-200 rounded-xl overflow-hidden flex flex-col h-[400px] shadow-inner">
-                                    <div className="p-3 bg-white border-b border-slate-200 flex items-center gap-2">
-                                        <div className="bg-primary/10 p-1 rounded-md">
-                                            <Bot size={14} className="text-primary" />
-                                        </div>
-                                        <span className="text-xs font-bold text-slate-700">AI Career Assistant</span>
-                                    </div>
-
-                                    <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
-                                        {chatMessages.map((msg, idx) => (
-                                            <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-in slide-in-from-bottom-2 duration-300`}>
-                                                <div className={`flex gap-2 max-w-[85%] ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
-                                                    <div className={`h-6 w-6 rounded-full flex items-center justify-center shrink-0 mt-1 ${msg.role === 'user' ? 'bg-slate-200' : 'bg-primary'}`}>
-                                                        {msg.role === 'user' ? <User size={12} className="text-slate-600" /> : <Bot size={12} className="text-white" />}
-                                                    </div>
-                                                    <div className={`p-2.5 rounded-2xl text-[11px] leading-relaxed shadow-sm ${msg.role === 'user' ? 'bg-slate-900 text-white rounded-tr-none' : 'bg-white border border-slate-200 text-slate-700 rounded-tl-none'}`}>
-                                                        {msg.text}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ))}
-                                        {isThinking && (
-                                            <div className="flex justify-start animate-in fade-in duration-300">
-                                                <div className="flex gap-2">
-                                                    <div className="h-6 w-6 rounded-full bg-primary flex items-center justify-center shrink-0 mt-1">
-                                                        <Bot size={12} className="text-white" />
-                                                    </div>
-                                                    <div className="p-2.5 bg-white border border-slate-200 rounded-2xl rounded-tl-none shadow-sm flex items-center gap-1">
-                                                        <div className="w-1 h-1 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                                                        <div className="w-1 h-1 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                                                        <div className="w-1 h-1 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        )}
-                                        <div ref={chatEndRef} />
-                                    </div>
-
-                                    <form onSubmit={handleSendChat} className="p-3 bg-white border-t border-slate-200 flex gap-2">
-                                        <input
-                                            type="text"
-                                            value={chatInput}
-                                            onChange={(e) => setChatInput(e.target.value)}
-                                            placeholder="I learned Python last month..."
-                                            className="flex-1 px-3 py-2 text-[11px] bg-slate-50 border border-slate-200 rounded-lg focus:ring-1 focus:ring-primary outline-none transition-all"
-                                        />
-                                        <button
-                                            type="submit"
-                                            disabled={!chatInput.trim() || isThinking}
-                                            className="p-2 bg-primary text-white rounded-lg hover:bg-blue-600 transition-all disabled:opacity-50 flex items-center justify-center"
-                                        >
-                                            <Send size={14} />
-                                        </button>
-                                    </form>
-                                </div>
-                            </div>
-                        )}
-
-                        {activeTab === 'prompts' && (
-                            <div className="space-y-4 animate-in fade-in duration-300 max-w-2xl mx-auto">
-                                <div>
-                                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Global Rules & Tone</label>
-                                    <textarea
-                                        value={localPrompts.globalRules || ''}
-                                        onChange={(e) => handlePromptChange('globalRules', e.target.value)}
-                                        placeholder="e.g., Always use Canadian spelling. Focus on senior leadership traits. Keep descriptions concise."
-                                        className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary h-20 text-xs leading-relaxed text-slate-900"
+                        <div className="space-y-6 animate-in fade-in duration-300">
+                            <div>
+                                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Google Gemini API Key</label>
+                                <div className="flex gap-2">
+                                    <input
+                                        type="password"
+                                        value={localKey}
+                                        onChange={(e) => setLocalKey(e.target.value)}
+                                        placeholder="AIzaSy..."
+                                        className="flex-1 px-4 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all text-slate-900"
                                     />
+                                    <button
+                                        type="button"
+                                        onClick={testConnection}
+                                        disabled={testStatus === 'testing' || !localKey}
+                                        className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2 border ${testStatus === 'success' ? 'bg-green-50 border-green-200 text-green-700' :
+                                            testStatus === 'error' ? 'bg-red-50 border-red-200 text-red-700' :
+                                                'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                                            }`}
+                                    >
+                                        {testStatus === 'testing' ? <Loader2 size={14} className="animate-spin" /> : null}
+                                        {testStatus === 'success' ? <Check size={14} /> : null}
+                                        {testStatus === 'error' ? <X size={14} /> : null}
+                                        Test Connection
+                                    </button>
                                 </div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Resume AI Prompt</label>
-                                        <textarea
-                                            value={localPrompts.resume}
-                                            onChange={(e) => handlePromptChange('resume', e.target.value)}
-                                            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary h-32 text-[10px] leading-relaxed text-slate-900"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Auditor Prompt</label>
-                                        <textarea
-                                            value={localPrompts.auditor}
-                                            onChange={(e) => handlePromptChange('auditor', e.target.value)}
-                                            className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary h-32 text-[10px] leading-relaxed text-slate-900"
-                                        />
-                                    </div>
-                                </div>
+                                {testError && <p className="text-[10px] text-red-500 mt-1 font-medium">{testError}</p>}
                             </div>
-                        )}
+
+                            <div>
+                                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Global Rules & Tone</label>
+                                <textarea
+                                    value={localPrompts.globalRules || ''}
+                                    onChange={(e) => setLocalPrompts(prev => ({ ...prev, globalRules: e.target.value }))}
+                                    placeholder="e.g., Always use Canadian spelling. Focus on senior leadership traits. Keep descriptions concise."
+                                    className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary h-32 text-xs leading-relaxed text-slate-900"
+                                />
+                                <p className="text-[10px] text-slate-400 mt-2 leading-relaxed">
+                                    These rules are applied to all generated documents (Resume, Cover Letter, etc.).
+                                </p>
+                            </div>
+                        </div>
                     </form>
                 </div>
 

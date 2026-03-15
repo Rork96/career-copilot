@@ -1,8 +1,17 @@
 import { useState, useEffect, useRef } from 'react';
 import { MessageSquare, X, Send, Bot, User, BrainCircuit, Plus, Trash2, Edit2, Check, Loader2, RefreshCw } from 'lucide-react';
 
-export default function FloatingChat({ onRegenerate }) {
+export default function FloatingChat({ onRegenerate, hasSeenChat, setHasSeenChat }) {
   const [isOpen, setIsOpen] = useState(false);
+  
+  // Mark as seen when opened
+  useEffect(() => {
+    if (isOpen && !hasSeenChat) {
+      setHasSeenChat(true);
+      localStorage.setItem('hasSeenChat', 'true');
+    }
+  }, [isOpen, hasSeenChat, setHasSeenChat]);
+
   const [activeTab, setActiveTab] = useState('chat'); // chat, knowledge
   const [messages, setMessages] = useState([
     { role: 'assistant', text: "Hi! I'm your Career Assistant. How can I help you with your tailored resume or career strategy today?" }
@@ -107,6 +116,14 @@ export default function FloatingChat({ onRegenerate }) {
         className={`fixed bottom-6 right-6 p-4 bg-primary text-white rounded-full shadow-2xl hover:bg-blue-600 hover:scale-110 transition-all z-40 flex items-center justify-center ${isOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
       >
         <MessageSquare size={24} />
+        
+        {/* Pulsing Onboarding Notification */}
+        {!hasSeenChat && (
+          <span className="absolute -top-1 -right-1 flex h-3 w-3">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+          </span>
+        )}
       </button>
 
       {/* Slide-over Drawer */}

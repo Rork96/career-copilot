@@ -54,3 +54,12 @@
   #printable-resume { position: absolute; left: 0; top: 0; width: 100%; margin: 0; padding: 0; }
   @page { size: letter portrait; margin: 0.5in; }
 }
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

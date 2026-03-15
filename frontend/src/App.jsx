@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Settings, Sparkles, AlertCircle, ArrowUp, Loader2, TriangleAlert } from 'lucide-react';
+import { Settings, Sparkles, AlertCircle, ArrowUp, Loader2, TriangleAlert, ArrowLeft } from 'lucide-react';
 
 import ResumeInput from './components/ResumeInput';
 import JobInput from './components/JobInput';
@@ -52,6 +52,7 @@ function App() {
 
   // UX State
   const [showFAB, setShowFAB] = useState(false);
+  const [hasSeenChat, setHasSeenChat] = useState(localStorage.getItem('hasSeenChat') === 'true');
   const [loadingStep, setLoadingStep] = useState(0);
   const loadingMessages = [
     "Analyzing Job Description...",
@@ -314,7 +315,15 @@ function App() {
 
         {/* === SCREEN 2: WORKSPACE === */}
         {currentScreen === 'workspace' && (
-          <>
+          <div className="pb-24 lg:pb-0">
+            {/* Onboarding Banner */}
+            <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4 mb-6 flex items-start gap-3">
+              <Sparkles className="text-indigo-500 shrink-0 mt-0.5" size={18} />
+              <p className="text-sm text-indigo-900">
+                <strong>Welcome to Career Copilot!</strong> Paste your master resume on the left, the target job on the right, and let our AI optimize your application to Canadian ATS standards.
+              </p>
+            </div>
+
             {!apiKey && (
               <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-3">
                 <AlertCircle className="text-amber-600 shrink-0 mt-0.5" size={20} />
@@ -324,28 +333,33 @@ function App() {
                 </div>
               </div>
             )}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full items-start">
               <div className="space-y-6">
                 <ResumeInput resumeText={resumeText} setResumeText={setResumeText} />
               </div>
               <div className="space-y-6">
                 <JobInput jobUrl={jobUrl} setJobUrl={setJobUrl} jobText={jobText} setJobText={setJobText} />
-                <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200 mt-6">
-                  <button
-                    onClick={handleGenerate}
-                    className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-gradient-to-r from-blue-600 to-primary hover:from-blue-700 hover:to-blue-600 text-white font-bold rounded-lg shadow-md hover:shadow-lg transition-all group"
-                  >
-                    <Sparkles size={20} className="group-hover:text-yellow-200 transition-colors" /> Tailor Application
-                  </button>
-                  {errorMsg && (
-                    <p className="text-red-600 text-sm mt-3 text-center font-medium bg-red-50 py-2 rounded-md">
-                      {errorMsg}
-                    </p>
-                  )}
+                
+                {/* Generate Button Container */}
+                <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/90 backdrop-blur-sm border-t border-slate-200 z-50 lg:static lg:bg-transparent lg:border-none lg:p-0 lg:mt-6">
+                  <div className="max-w-7xl mx-auto lg:max-w-none">
+                    <button
+                      onClick={handleGenerate}
+                      className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-gradient-to-r from-blue-600 to-primary hover:from-blue-700 hover:to-blue-600 text-white font-bold rounded-lg shadow-md hover:shadow-lg transition-all group"
+                    >
+                      <Sparkles size={20} className="group-hover:text-yellow-200 transition-colors" /> Tailor Application ✨
+                    </button>
+                    {errorMsg && (
+                      <p className="text-red-600 text-sm mt-3 text-center font-medium bg-red-50 py-2 rounded-md lg:absolute lg:left-0 lg:right-0">
+                        {errorMsg}
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
-          </>
+          </div>
         )}
 
         {/* === SCREEN 3: LOADING === */}
@@ -371,16 +385,14 @@ function App() {
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-slate-200">
               <div className="flex items-center gap-3">
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                <h2 className="font-bold text-slate-800">Your Tailored Application is Ready!</h2>
-              </div>
-              <div className="flex gap-3">
                 <button
                   onClick={() => setCurrentScreen('workspace')}
-                  className="px-4 py-2 bg-slate-50 text-slate-700 font-bold text-xs uppercase tracking-wider rounded-lg hover:bg-slate-100 transition-colors border border-slate-200"
+                  className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900 font-semibold transition-colors"
                 >
-                  Workspace
+                  <ArrowLeft size={16} /> New Application
                 </button>
+              </div>
+              <div className="flex gap-3">
                 <button
                   onClick={handleStartOver}
                   className="px-4 py-2 bg-red-50 text-red-600 font-bold text-xs uppercase tracking-wider rounded-lg hover:bg-red-100 transition-colors border border-red-100"
@@ -388,13 +400,6 @@ function App() {
                   Start Over
                 </button>
               </div>
-            </div>
-
-            <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl flex items-start gap-3 shadow-sm">
-              <TriangleAlert className="text-amber-600 shrink-0 mt-0.5" size={20} />
-              <p className="text-amber-800 text-sm leading-relaxed">
-                <strong>Disclaimer:</strong> AI can occasionally make mistakes or hallucinate facts. Please review your tailored resume and generated documents carefully to ensure all information is 100% accurate before applying.
-              </p>
             </div>
 
             <div className="min-h-[600px]">
@@ -432,7 +437,13 @@ function App() {
       />
 
       {/* Floating AI Assistant - Only on results screen */}
-      {currentScreen === 'results' && <FloatingChat onRegenerate={handleGenerate} />}
+      {currentScreen === 'results' && (
+        <FloatingChat 
+          onRegenerate={handleGenerate} 
+          hasSeenChat={hasSeenChat}
+          setHasSeenChat={setHasSeenChat}
+        />
+      )}
     </div>
   );
 }

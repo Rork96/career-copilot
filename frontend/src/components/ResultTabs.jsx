@@ -3,7 +3,6 @@ import PropTypes from 'prop-types';
 import { Copy, Check, X, Download, FileText, CheckCircle2, Sparkles, Loader2, Zap, BrainCircuit, Info, ArrowRight, AlertTriangle, ChevronDown, Edit3, ShieldCheck, Target, TrendingUp, Compass, MessageSquarePlus, Building, Search } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import axios from 'axios';
-import html2pdf from 'html2pdf.js';
 import ResumePDFTemplate from './ResumePDFTemplate';
 
 const API_BASE = 'http://localhost:8000/api';
@@ -55,27 +54,27 @@ const ComparisonGauges = ({ original, optimized, tone }) => {
                 <ScoreGauge score={optimized} label="Tailored" color={optimized > 80 ? 'green' : 'amber'} />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-                <div className={`p-3 rounded-lg border flex items-center justify-between ${isImproved ? 'bg-green-50 border-green-100' : 'bg-slate-50 border-slate-100'}`}>
+            <div className="grid grid-cols-2 gap-4">
+                <div className={`p-4 rounded-xl border flex flex-col items-center justify-center gap-1.5 shadow-sm transition-all ${isImproved ? 'bg-green-50 border-green-100' : 'bg-slate-50 border-slate-100'}`}>
                     <div className="flex items-center gap-2">
-                        <TrendingUp size={14} className={isImproved ? 'text-green-600' : 'text-slate-400'} />
+                        <TrendingUp size={16} className={isImproved ? 'text-green-600' : 'text-slate-400'} />
                         <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">
                             Optimization Lift
                         </span>
                     </div>
-                    <span className={`text-xs font-black ${isImproved ? 'text-green-600' : 'text-slate-500'}`}>
+                    <span className={`text-sm font-black ${isImproved ? 'text-green-600' : 'text-slate-500'}`}>
                         {isImproved ? `+${diff}%` : `${diff}%`}
                     </span>
                 </div>
 
-                <div className="p-3 rounded-lg border border-blue-100 bg-blue-50 flex items-center justify-between">
+                <div className="p-4 rounded-xl border border-blue-100 bg-blue-50 flex flex-col items-center justify-center gap-1.5 shadow-sm">
                     <div className="flex items-center gap-2">
-                        <ToneIcon size={14} className="text-blue-600" />
+                        <ToneIcon size={16} className="text-blue-600" />
                         <span className="text-xs font-bold text-slate-700 uppercase tracking-wider">
                             Detected Tone
                         </span>
                     </div>
-                    <span className="text-xs font-black text-blue-600">
+                    <span className="text-sm font-black text-blue-600">
                         {tone || 'Professional'}
                     </span>
                 </div>
@@ -104,16 +103,18 @@ export default function ResultTabs({ results, setResults, resumeText, jobText, a
     const [isExportOpen, setIsExportOpen] = useState(false);
     const [insightTab, setInsightTab] = useState('gaps'); // 'gaps' or 'roadmap'
     const [addedSkills, setAddedSkills] = useState({});
+    const [matrixPage, setMatrixPage] = useState(0);
+    const [showAllMatrix, setShowAllMatrix] = useState(false);
 
     const handleAddToKnowledgeBase = (skill) => {
         const savedFacts = localStorage.getItem('careerFacts');
         const facts = savedFacts ? JSON.parse(savedFacts) : [];
-        
+
         if (!facts.includes(skill)) {
             facts.push(skill);
             localStorage.setItem('careerFacts', JSON.stringify(facts));
         }
-        
+
         setAddedSkills(prev => ({ ...prev, [skill]: true }));
     };
 
@@ -173,20 +174,12 @@ export default function ResultTabs({ results, setResults, resumeText, jobText, a
     };
 
     const handleDownloadPDF = () => {
-        const element = document.getElementById('resume-pdf-template');
-        if (!element) return;
+        const originalTitle = document.title;
+        const filename = `${(results.candidate_name || 'Candidate').replace(/\s+/g, '_')}_${(results.target_role || 'Role').replace(/\s+/g, '_')}_Resume`;
 
-        const opt = {
-            margin: 0,
-            filename: 'Tailored_Resume_ATS.pdf',
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true, letterRendering: true },
-            jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' },
-            pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
-        };
-
-        // Export only the resume tab as PDF
-        html2pdf().set(opt).from(element).save();
+        document.title = filename;
+        window.print();
+        document.title = originalTitle;
     };
 
     const generateCoverLetter = async () => {
@@ -255,7 +248,7 @@ export default function ResultTabs({ results, setResults, resumeText, jobText, a
 
                 {/* LEFT COLUMN: Analytics */}
                 <div className="lg:col-span-1 space-y-6">
-                    <div>
+                    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
                         <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-2">
                             <Zap size={12} className="text-primary" /> Core Analytics
                         </h3>
@@ -294,7 +287,7 @@ export default function ResultTabs({ results, setResults, resumeText, jobText, a
                                             </span>
                                         </div>
                                         <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                                            <div 
+                                            <div
                                                 className="h-full bg-primary transition-all duration-1000 ease-out"
                                                 style={{ width: `${Math.max(10, (10 - (results.missing_hard_skills?.length || 0)) * 10)}%` }}
                                             ></div>
@@ -311,7 +304,7 @@ export default function ResultTabs({ results, setResults, resumeText, jobText, a
                                                     results.missing_hard_skills.map((skill, idx) => (
                                                         <div key={idx} className="px-3 py-1.5 bg-red-50 text-red-700 border border-red-100 rounded-lg flex items-center gap-2 text-xs font-bold shadow-sm transition-transform hover:scale-105">
                                                             <span>{skill}</span>
-                                                            <button 
+                                                            <button
                                                                 type="button"
                                                                 onClick={() => handleAddToKnowledgeBase(skill)}
                                                                 disabled={addedSkills[skill]}
@@ -337,7 +330,7 @@ export default function ResultTabs({ results, setResults, resumeText, jobText, a
                                                     results.keyword_optimizations.map((skill, idx) => (
                                                         <div key={idx} className="px-3 py-1.5 bg-blue-50 text-blue-700 border border-blue-100 rounded-lg flex items-center gap-2 text-xs font-bold shadow-sm transition-transform hover:scale-105">
                                                             <span>{skill}</span>
-                                                            <button 
+                                                            <button
                                                                 type="button"
                                                                 className="hover:bg-blue-200 p-0.5 rounded transition-colors"
                                                             >
@@ -354,9 +347,20 @@ export default function ResultTabs({ results, setResults, resumeText, jobText, a
 
                                     {/* ATS Keyword Matrix */}
                                     <div className="pt-4 border-t border-slate-100">
-                                        <h4 className="text-xs font-black text-slate-500 uppercase tracking-[0.1em] mb-3 flex items-center gap-1.5">
-                                            <ShieldCheck size={12} className="text-primary" /> ATS Keyword Matrix
-                                        </h4>
+                                        <div className="flex items-center justify-between mb-3">
+                                            <h4 className="text-xs font-black text-slate-500 uppercase tracking-[0.1em] flex items-center gap-1.5">
+                                                <ShieldCheck size={12} className="text-primary" /> ATS Keyword Matrix
+                                            </h4>
+                                            <label className="flex items-center gap-1.5 cursor-pointer group">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={showAllMatrix}
+                                                    onChange={(e) => setShowAllMatrix(e.target.checked)}
+                                                    className="w-3 h-3 rounded text-primary focus:ring-primary border-slate-300"
+                                                />
+                                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider group-hover:text-slate-600 transition-colors">Show All</span>
+                                            </label>
+                                        </div>
                                         <div className="overflow-hidden rounded-xl border border-slate-100 shadow-sm">
                                             <table className="w-full text-left border-collapse">
                                                 <thead>
@@ -367,18 +371,18 @@ export default function ResultTabs({ results, setResults, resumeText, jobText, a
                                                     </tr>
                                                 </thead>
                                                 <tbody className="divide-y divide-slate-50">
-                                                    {results.keywordMatrix && results.keywordMatrix.length > 0 ? (
-                                                        results.keywordMatrix.map((row, idx) => (
+                                                    {(results.keywordMatrix && results.keywordMatrix.length > 0) ? (
+                                                        (showAllMatrix ? results.keywordMatrix : results.keywordMatrix.slice(matrixPage * 5, (matrixPage + 1) * 5)).map((row, idx) => (
                                                             <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
                                                                 <td className="px-3 py-2 text-xs font-semibold text-slate-700">{row.skill}</td>
-                                                                <td className="px-3 py-2 text-center">
+                                                                <td className="px-3 py-2 text-center text-xs">
                                                                     {row.in_original ? (
                                                                         <Check size={14} className="text-green-500 mx-auto" strokeWidth={3} />
                                                                     ) : (
                                                                         <X size={14} className="text-slate-300 mx-auto" strokeWidth={3} />
                                                                     )}
                                                                 </td>
-                                                                <td className="px-3 py-2 text-center">
+                                                                <td className="px-3 py-2 text-center text-xs">
                                                                     {row.in_tailored ? (
                                                                         <Check size={14} className="text-blue-500 mx-auto" strokeWidth={3} />
                                                                     ) : (
@@ -397,6 +401,29 @@ export default function ResultTabs({ results, setResults, resumeText, jobText, a
                                                 </tbody>
                                             </table>
                                         </div>
+                                        {!showAllMatrix && results.keywordMatrix && results.keywordMatrix.length > 5 && (
+                                            <div className="flex items-center justify-between mt-3 px-1">
+                                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                                                    Page {matrixPage + 1} of {Math.ceil(results.keywordMatrix.length / 5)}
+                                                </span>
+                                                <div className="flex gap-2">
+                                                    <button
+                                                        onClick={() => setMatrixPage(Math.max(0, matrixPage - 1))}
+                                                        disabled={matrixPage === 0}
+                                                        className="p-1 rounded bg-white border border-slate-200 text-slate-400 hover:text-primary disabled:opacity-30 disabled:hover:text-slate-400 transition-colors"
+                                                    >
+                                                        <ChevronDown size={14} className="rotate-90" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setMatrixPage(Math.min(Math.ceil(results.keywordMatrix.length / 5) - 1, matrixPage + 1))}
+                                                        disabled={matrixPage >= Math.ceil(results.keywordMatrix.length / 5) - 1}
+                                                        className="p-1 rounded bg-white border border-slate-200 text-slate-400 hover:text-primary disabled:opacity-30 disabled:hover:text-slate-400 transition-colors"
+                                                    >
+                                                        <ChevronDown size={14} className="-rotate-90" />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             ) : (
@@ -446,13 +473,13 @@ export default function ResultTabs({ results, setResults, resumeText, jobText, a
                     <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-2">
                         <Sparkles size={12} className="text-blue-500" /> Optimization Impact
                     </h3>
-                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col h-[calc(100%-31px)] overflow-hidden">
-                        <div className="grid grid-cols-12 px-4 py-2.5 bg-slate-50/80 border-b border-slate-200/80">
+                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col max-h-[460px] overflow-hidden">
+                        <div className="grid grid-cols-12 px-4 py-2.5 bg-slate-50/80 border-b border-slate-200/80 shrink-0">
                             <div className="col-span-5 text-xs font-bold text-slate-400 uppercase tracking-wider">Source Fact</div>
                             <div className="col-span-1"></div>
                             <div className="col-span-6 text-xs font-bold text-blue-500 uppercase tracking-wider">Tailored Improvement</div>
                         </div>
-                        <div className="divide-y divide-slate-100 overflow-y-auto flex-1">
+                        <div className="divide-y divide-slate-100 overflow-y-auto flex-1 max-h-[300px]">
                             {results.bulletComparisons && results.bulletComparisons.length > 0 ? (
                                 results.bulletComparisons.map((item, idx) => (
                                     <div key={idx} className="grid grid-cols-12 gap-4 p-4 items-center group hover:bg-slate-50 transition-colors">
@@ -481,8 +508,8 @@ export default function ResultTabs({ results, setResults, resumeText, jobText, a
 
             {/* DOCUMENT VIEWER */}
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col min-h-[600px]">
-                <div className="bg-slate-50/50 border-b border-slate-100 px-4 py-3 flex justify-between items-center">
-                    <div className="flex bg-slate-200/50 p-1 rounded-lg">
+                <div className="bg-slate-50/50 border-b border-slate-100 px-4 py-3 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div className="flex bg-slate-200/50 p-1 rounded-lg w-full sm:w-auto overflow-x-auto whitespace-nowrap hide-scrollbar">
                         {tabs.map((tab) => (
                             <button
                                 key={tab.id}
@@ -499,7 +526,7 @@ export default function ResultTabs({ results, setResults, resumeText, jobText, a
                         ))}
                     </div>
 
-                    <div className="flex gap-2">
+                    <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
                         {activeTab === 'resume' && (
                             <button
                                 onClick={() => setIsEditing(!isEditing)}
@@ -556,7 +583,7 @@ export default function ResultTabs({ results, setResults, resumeText, jobText, a
                     <div className="max-w-3xl w-full mx-auto p-0">
                         {activeTab === 'resume' && (
                             <div className="bg-white shadow-2xl p-12 md:p-16 min-h-[1056px] w-[816px] mx-auto border border-slate-200 animate-in zoom-in-95 duration-500 transform origin-top">
-                                <div className="prose prose-sm max-w-none prose-slate prose-headings:text-slate-900 prose-headings:font-bold prose-p:text-slate-700 prose-li:text-slate-700 h-full">
+                                <div id="printable-resume" className="prose prose-sm max-w-none prose-slate prose-headings:text-slate-900 prose-headings:font-bold prose-p:text-slate-700 prose-li:text-slate-700 h-full">
                                     {isEditing ? (
                                         <textarea
                                             value={results.resume}
@@ -607,9 +634,9 @@ export default function ResultTabs({ results, setResults, resumeText, jobText, a
                         )}
 
                         {activeTab === 'research' && (
-                            <div className="bg-white p-10 rounded-xl shadow-sm border border-slate-200 max-w-2xl mx-auto min-h-[600px]">
+                            <div className="bg-white p-10 rounded-xl shadow-sm border border-slate-200 max-w-2xl mx-auto min-h-[600px] overflow-hidden">
                                 {results.research ? (
-                                    <div className="prose prose-sm max-w-none prose-slate">
+                                    <div className="prose prose-sm max-w-none prose-slate mx-auto">
                                         <ReactMarkdown>{results.research}</ReactMarkdown>
                                     </div>
                                 ) : (

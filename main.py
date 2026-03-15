@@ -54,6 +54,8 @@ class OptimizeResumeResponse(BaseModel):
     original_ats_score: int
     optimized_ats_score: int
     detected_tone: str  # Professional | Strategic | Technical
+    candidate_name: str
+    target_role: str
     retrieved_achievements: Optional[list[str]] = None
     bullet_comparisons: Optional[list[BulletComparison]] = None
     missing_hard_skills: Optional[list[str]] = None
@@ -297,11 +299,14 @@ Audit Objectives:
 4. Provide a 'recommendations' list: 3-5 specific action items for the user to improve their candidacy.
 5. Calculate two scores: 'original_ats_score' and 'optimized_ats_score'.
 6. Select the 3 most impactful bullet point optimizations.
+7. Extract the candidate's full name from the Original Resume and the core job title from the Job Description.
 
 CRITICAL: The arrays for 'missing_hard_skills', 'keyword_optimizations', and 'recommendations' MUST NEVER BE EMPTY. If the resume is perfect, provide advanced/senior-level suggestions instead.
 
 Return the audited resume strictly as a JSON object with this exact structure (no markdown formatting outside the JSON):
-{{
+{
+  "candidate_name": "John Doe",
+  "target_role": "Software Engineer",
   "optimized_markdown": "# Your full tailored markdown resume here...",
   "original_ats_score": 45,
   "optimized_ats_score": 92,
@@ -332,6 +337,8 @@ Return the audited resume strictly as a JSON object with this exact structure (n
             "original_ats_score": parsed.get("original_ats_score", 0),
             "optimized_ats_score": parsed.get("optimized_ats_score", 0),
             "detected_tone": detected_tone,
+            "candidate_name": parsed.get("candidate_name", "Candidate"),
+            "target_role": parsed.get("target_role", "Target Role"),
             "retrieved_achievements": parsed.get("retrieved_achievements", []),
             "bullet_comparisons": parsed.get("bullet_comparisons", []),
             "missing_hard_skills": parsed.get("missing_hard_skills", []),

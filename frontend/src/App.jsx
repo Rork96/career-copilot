@@ -52,11 +52,33 @@ function App() {
 
   // UX State
   const [showFAB, setShowFAB] = useState(false);
+  const [loadingStep, setLoadingStep] = useState(0);
+  const loadingMessages = [
+    "Analyzing Job Description...",
+    "Extracting Knowledge Base Facts...",
+    "Optimizing ATS Keywords...",
+    "Formatting Canadian Standard PDF..."
+  ];
 
-  // Load Settings on Mount
+  // Load Settings and Session on Mount
   useEffect(() => {
     const savedKey = localStorage.getItem('geminiApiKey');
     if (savedKey) setApiKey(savedKey);
+
+    const savedResults = localStorage.getItem('savedResults');
+    const savedResume = localStorage.getItem('savedResumeText');
+    const savedJob = localStorage.getItem('savedJobText');
+
+    if (savedResults && savedResume && savedJob) {
+      try {
+        setResults(JSON.parse(savedResults));
+        setResumeText(savedResume);
+        setJobText(savedJob);
+        setCurrentScreen('results');
+      } catch (e) {
+        console.error("Failed to restore session", e);
+      }
+    }
 
     const savedPrompts = localStorage.getItem('careerCopilotPrompts');
     if (savedPrompts) {
@@ -86,6 +108,51 @@ function App() {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // Persist Data on Changes
+  useEffect(() => {
+    if (currentScreen === 'results' && results.resume) {
+      localStorage.setItem('savedResults', JSON.stringify(results));
+      localStorage.setItem('savedResumeText', resumeText);
+      localStorage.setItem('savedJobText', jobText);
+    }
+  }, [results, resumeText, jobText, currentScreen]);
+
+  // Dynamic Loading Logic
+  useEffect(() => {
+    let interval;
+    if (currentScreen === 'loading') {
+      setLoadingStep(0);
+      interval = setInterval(() => {
+        setLoadingStep(prev => (prev + 1) % loadingMessages.length);
+      }, 2500);
+    }
+    return () => clearInterval(interval);
+  }, [currentScreen]);
+
+  const handleStartOver = () => {
+    if (window.confirm("Are you sure you want to clear this session and start over?")) {
+      localStorage.removeItem('savedResults');
+      localStorage.removeItem('savedResumeText');
+      localStorage.removeItem('savedJobText');
+      setResults({
+        resume: '',
+        original_ats_score: 0,
+        optimized_ats_score: 0,
+        changesSummary: [],
+        retrievedAchievements: [],
+        bulletComparisons: [],
+        missingSkills: [],
+        research: null,
+        coverLetter: null,
+        interview: null
+      });
+      setResumeText('');
+      setJobText('');
+      setJobUrl('');
+      setCurrentScreen('workspace');
+    }
+  };
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -283,12 +350,18 @@ function App() {
 
         {/* === SCREEN 3: LOADING === */}
         {currentScreen === 'loading' && (
-          <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-8">
-            <Loader2 className="animate-spin text-primary" size={64} />
+          <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-8 animate-in fade-in zoom-in-95 duration-500">
+            <div className="relative">
+              <Loader2 className="animate-spin text-primary" size={64} />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-8 h-8 bg-blue-50 rounded-full animate-ping opacity-20"></div>
+              </div>
+            </div>
             <div className="text-center max-w-md h-16">
-              <h2 className="text-xl font-bold text-slate-800 mb-2 transition-all duration-300">
-                Tailoring your resume to Canadian standards...
+              <h2 className="text-xl font-bold text-slate-800 mb-2 transition-all duration-500 opacity-100 transform translate-y-0">
+                {loadingMessages[loadingStep]}
               </h2>
+              <p className="text-sm text-slate-500 animate-pulse">Running AI Audit Engine...</p>
             </div>
           </div>
         )}
@@ -297,13 +370,24 @@ function App() {
         {currentScreen === 'results' && (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-              <h2 className="font-bold text-slate-800">Your Tailored Application is Ready!</h2>
-              <button
-                onClick={() => setCurrentScreen('workspace')}
-                className="px-4 py-2 bg-slate-100 text-slate-700 font-medium rounded-lg hover:bg-slate-200 transition-colors"
-              >
-                Start Another Application
-              </button>
+              <div className="flex items-center gap-3">
+                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                <h2 className="font-bold text-slate-800">Your Tailored Application is Ready!</h2>
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setCurrentScreen('workspace')}
+                  className="px-4 py-2 bg-slate-50 text-slate-700 font-bold text-xs uppercase tracking-wider rounded-lg hover:bg-slate-100 transition-colors border border-slate-200"
+                >
+                  Workspace
+                </button>
+                <button
+                  onClick={handleStartOver}
+                  className="px-4 py-2 bg-red-50 text-red-600 font-bold text-xs uppercase tracking-wider rounded-lg hover:bg-red-100 transition-colors border border-red-100"
+                >
+                  Start Over
+                </button>
+              </div>
             </div>
 
             <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl flex items-start gap-3 shadow-sm">

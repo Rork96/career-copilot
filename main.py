@@ -72,7 +72,7 @@ class MarkdownResponse(BaseModel):
 class MarkdownRequest(BaseModel):
     markdown_text: str
 
-@app.post("/api/assistant/chat", response_model=AssistantChatResponse)
+@app.post("/assistant/chat", response_model=AssistantChatResponse)
 async def assistant_chat(
     request: AssistantChatRequest,
     x_gemini_api_key: Annotated[Optional[str], Header()] = None
@@ -118,7 +118,7 @@ Rules:
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/api/test-key")
+@app.get("/test-key")
 async def test_key(x_gemini_api_key: Annotated[Optional[str], Header()] = None):
     """Simple endpoint to verify if a Gemini API key is valid."""
     if not x_gemini_api_key:
@@ -137,7 +137,7 @@ import io
 import docx
 import fitz
 
-@app.post("/api/parse-resume")
+@app.post("/parse-resume")
 async def parse_resume(file: UploadFile = File(...)):
     if not (file.filename.endswith('.pdf') or file.filename.endswith('.txt') or file.filename.endswith('.docx')):
         raise HTTPException(status_code=400, detail="Only PDF, TXT, and DOCX files are supported.")
@@ -165,7 +165,7 @@ async def parse_resume(file: UploadFile = File(...)):
         print(f"Error parsing file: {e}")
         raise HTTPException(status_code=500, detail=f"Error parsing file: {str(e)}")
 
-@app.post("/api/parse-job", response_model=TextResponse)
+@app.post("/parse-job", response_model=TextResponse)
 async def parse_job(request: JobParseRequest):
     try:
         jina_url = f"https://r.jina.ai/{request.url}"
@@ -272,7 +272,7 @@ def _init_gemini(api_key: str):
     # Using gemini-2.5-flash as the default model
     return genai.GenerativeModel('gemini-2.5-flash')
 
-@app.post("/api/optimize-resume", response_model=OptimizeResumeResponse)
+@app.post("/optimize-resume", response_model=OptimizeResumeResponse)
 async def optimize_resume(
     request: AIRequestModel, 
     x_gemini_api_key: Annotated[Optional[str], Header()] = None
@@ -300,7 +300,7 @@ async def optimize_resume(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/api/optimize-resume-v2", response_model=OptimizeResumeResponse)
+@app.post("/optimize-resume-v2", response_model=OptimizeResumeResponse)
 async def optimize_resume_v2(
     request: AIRequestModel, 
     x_gemini_api_key: Annotated[Optional[str], Header()] = None
@@ -392,7 +392,7 @@ Return strictly a JSON object:
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/api/generate-cover-letter", response_model=MarkdownResponse)
+@app.post("/generate-cover-letter", response_model=MarkdownResponse)
 async def generate_cover_letter(
     request: AIRequestModel,
     x_gemini_api_key: Annotated[Optional[str], Header()] = None
@@ -413,7 +413,7 @@ Original Resume:
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/api/generate-interview", response_model=MarkdownResponse)
+@app.post("/generate-interview", response_model=MarkdownResponse)
 async def generate_interview(
     request: AIRequestModel,
     x_gemini_api_key: Annotated[Optional[str], Header()] = None
@@ -447,7 +447,7 @@ Return ONLY a raw JSON object with a single key 'markdown' containing the interv
         print(f"Error in Interview Prep: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/api/generate-research", response_model=MarkdownResponse)
+@app.post("/generate-research", response_model=MarkdownResponse)
 async def generate_research(
     request: AIRequestModel, 
     x_gemini_api_key: Annotated[Optional[str], Header()] = None
@@ -478,7 +478,7 @@ Return your response strictly as a JSON object with a single key 'markdown'. Do 
         print(f"Error in Company Research: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/api/export-docx")
+@app.post("/export-docx")
 async def export_docx(request: Request):
     data = await request.json()
     text = data.get("markdown_text", "")
@@ -520,7 +520,7 @@ from fpdf import FPDF
 import os
 import io
 
-@app.post("/api/export-pdf")
+@app.post("/export-pdf")
 async def export_pdf(request: Request):
     try:
         data = await request.json()

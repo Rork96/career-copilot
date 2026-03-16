@@ -3,7 +3,9 @@ import PropTypes from 'prop-types';
 import axios from 'axios';
 import { Briefcase, DownloadCloud, Loader2 } from 'lucide-react';
 
-const API_BASE = 'http://localhost:8000/api';
+const API_BASE = window.location.hostname === 'localhost' 
+    ? 'http://localhost:8000/api' 
+    : 'https://cv.wealthifai.xyz/api';
 
 export default function JobInput({ jobUrl, setJobUrl, jobText, setJobText }) {
     const [isFetching, setIsFetching] = useState(false);

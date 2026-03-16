@@ -10,7 +10,7 @@ export default function Landing({ onStart }) {
 
         {/* Pill */}
         <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white border border-slate-200 shadow-sm text-slate-600 text-xs font-bold uppercase tracking-widest mb-8 mx-auto hover:border-blue-200 hover:bg-blue-50 transition-colors">
-          <Zap size={14} className="text-blue-500" /> Powered by Gemini 2.5 Flash
+          <Zap size={14} className="text-blue-500" /> Powered by Gemini 5 Flash
         </div>
 
         {/* Headline - Зменшений tracking, правильний leading */}

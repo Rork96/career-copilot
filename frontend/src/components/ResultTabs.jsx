@@ -5,7 +5,7 @@ import ReactMarkdown from 'react-markdown';
 import axios from 'axios';
 import ResumePDFTemplate from './ResumePDFTemplate';
 
-const API_BASE = 'http://cv.wealthifai.xyz/api';
+const API_BASE = 'https://cv.wealthifai.xyz/api';
 
 const ScoreGauge = ({ score, label, color = 'blue' }) => {
     const colorClass = color === 'green' ? 'text-green-600' : color === 'amber' ? 'text-amber-500' : color === 'red' ? 'text-red-500' : color === 'slate' ? 'text-slate-400' : 'text-blue-600';

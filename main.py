@@ -13,7 +13,10 @@ import google.generativeai as genai
 from typing import Optional, Annotated
 from fastapi.responses import StreamingResponse
 
-app = FastAPI(title="Career Copilot API v2")
+app = FastAPI(
+    title="Career Copilot API v2",
+    root_path="/api"  # ОЦЕЙ РЯДОК ВИРІШИТЬ ВСЕ
+)
 
 # Add CORS middleware to allow requests from the local frontend
 app.add_middleware(

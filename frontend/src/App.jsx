@@ -56,10 +56,12 @@ function App() {
   const [hasSeenChat, setHasSeenChat] = useState(localStorage.getItem('hasSeenChat') === 'true');
   const [loadingStep, setLoadingStep] = useState(0);
   const loadingMessages = [
-    "Analyzing Job Description...",
-    "Extracting Knowledge Base Facts...",
-    "Optimizing ATS Keywords...",
-    "Formatting Canadian Standard PDF..."
+    "Reading your raw experience...",
+    "Converting text to vectors using Google Embeddings...",
+    "Fact-checking: Securing your data against AI hallucinations...",
+    "Matching your true skills to the job requirements...",
+    "Formatting into an ATS-friendly structure...",
+    "Finalizing your honest, optimized resume..."
   ];
 
   // Load Settings and Session on Mount
@@ -126,8 +128,14 @@ function App() {
     if (currentScreen === 'loading') {
       setLoadingStep(0);
       interval = setInterval(() => {
-        setLoadingStep(prev => (prev + 1) % loadingMessages.length);
-      }, 2500);
+        setLoadingStep(prev => {
+          // Stop at the last message to avoid looping
+          if (prev >= loadingMessages.length - 1) {
+            return prev;
+          }
+          return prev + 1;
+        });
+      }, 1500);
     }
     return () => clearInterval(interval);
   }, [currentScreen]);

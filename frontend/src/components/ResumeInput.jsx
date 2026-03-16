@@ -3,7 +3,9 @@ import PropTypes from 'prop-types';
 import axios from 'axios';
 import { FileText, CloudUpload, Loader2 } from 'lucide-react';
 
-const API_BASE = 'http://localhost:8000/api';
+const API_BASE = window.location.hostname === 'localhost' 
+    ? 'http://localhost:8000/api' 
+    : 'https://cv.wealthifai.xyz/api';
 
 export default function ResumeInput({ resumeText, setResumeText }) {
     const [isUploading, setIsUploading] = useState(false);

@@ -2,6 +2,11 @@ import { useState, useRef, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { X, Plus, Trash2, Edit2, Check, BrainCircuit, Key, FileText, Settings, Loader2, Send, Bot, User, CheckCircle2 } from 'lucide-react';
 
+// Автоматичне визначення адреси сервера
+const API_BASE = window.location.hostname === 'localhost' 
+    ? 'http://localhost:8000/api' 
+    : 'https://cv.wealthifai.xyz/api';
+
 export default function SettingsModal({ isOpen, onClose, apiKey, setApiKey, prompts, setPrompts }) {
     const [localKey, setLocalKey] = useState(apiKey);
     const [localPrompts, setLocalPrompts] = useState(prompts);
@@ -9,11 +14,20 @@ export default function SettingsModal({ isOpen, onClose, apiKey, setApiKey, prom
     const [testStatus, setTestStatus] = useState('idle'); // idle, testing, success, error
     const [testError, setTestError] = useState('');
 
+    // Синхронізація локального стану при відкритті
+    useEffect(() => {
+        if (isOpen) {
+            setLocalKey(apiKey);
+            setLocalPrompts(prompts);
+            setTestStatus('idle');
+            setTestError('');
+        }
+    }, [isOpen, apiKey, prompts]);
 
     if (!isOpen) return null;
 
     const handleSave = (e) => {
-        e.preventDefault();
+        if (e) e.preventDefault();
         localStorage.setItem('geminiApiKey', localKey);
         setApiKey(localKey);
         localStorage.setItem('careerCopilotPrompts', JSON.stringify(localPrompts));
@@ -30,9 +44,11 @@ export default function SettingsModal({ isOpen, onClose, apiKey, setApiKey, prom
         setTestStatus('testing');
         setTestError('');
         try {
-            const res = await fetch('http://localhost:8000/api/test-key', {
+            // Тепер використовуємо динамічний API_BASE
+            const res = await fetch(`${API_BASE}/test-key`, {
                 headers: { 'X-Gemini-API-Key': localKey }
             });
+            
             if (res.ok) {
                 setTestStatus('success');
             } else {
@@ -42,10 +58,10 @@ export default function SettingsModal({ isOpen, onClose, apiKey, setApiKey, prom
             }
         } catch (e) {
             setTestStatus('error');
-            setTestError('Connection failed');
+            setTestError('Connection failed. Check if server is running.');
+            console.error('Test Connection Error:', e);
         }
     };
-
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 text-slate-900">
@@ -61,7 +77,6 @@ export default function SettingsModal({ isOpen, onClose, apiKey, setApiKey, prom
                         <X size={20} />
                     </button>
                 </div>
-
 
                 <div className="flex-1 overflow-y-auto p-6 scrollbar-hide">
                     <form onSubmit={handleSave} className="space-y-6">
@@ -80,10 +95,11 @@ export default function SettingsModal({ isOpen, onClose, apiKey, setApiKey, prom
                                         type="button"
                                         onClick={testConnection}
                                         disabled={testStatus === 'testing' || !localKey}
-                                        className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2 border ${testStatus === 'success' ? 'bg-green-50 border-green-200 text-green-700' :
+                                        className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2 border ${
+                                            testStatus === 'success' ? 'bg-green-50 border-green-200 text-green-700' :
                                             testStatus === 'error' ? 'bg-red-50 border-red-200 text-red-700' :
-                                                'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
-                                            }`}
+                                            'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                                        }`}
                                     >
                                         {testStatus === 'testing' ? <Loader2 size={14} className="animate-spin" /> : null}
                                         {testStatus === 'success' ? <Check size={14} /> : null}

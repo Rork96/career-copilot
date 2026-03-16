@@ -10,7 +10,7 @@ import FloatingChat from './components/FloatingChat';
 import Landing from './components/Landing';
 import './App.css';
 
-const API_BASE = 'http://localhost:8000/api';
+const API_BASE = 'http://cv.wealthifai.xyz/api' || 'http://localhost:8000/api';
 
 const defaultPrompts = {
   resume: "You are an elite Canadian Career Strategist and ATS Optimization Expert. Your task is to tailor the provided Original Resume to perfectly match the provided Job Description. STRICT CANADIAN STANDARDS TO FOLLOW: 1. Silent Third Person: Completely eliminate personal pronouns ('I', 'me', 'my'). 2. Privacy Compliance: Strictly remove any mention of age, gender, nationality, marital status, or exact street address. 3. The Achievement Formula: Rewrite every work experience bullet point to start with a strong Action Verb, followed by the Task/Project, and ending with a Quantifiable Business Result. 4. Keyword Optimization: Naturally integrate keywords from the Job Description. CRITICAL: Do NOT hallucinate facts, companies, or degrees. Output ONLY clean Markdown formatting.",
@@ -282,7 +282,7 @@ function App() {
                 </div>
               </div>
             )}
-            
+
             {/* 50/50 Split Screen Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 h-full items-start">
               <div className="space-y-6">
@@ -298,7 +298,7 @@ function App() {
                   <span className="text-xs font-bold uppercase tracking-widest">Target Job</span>
                 </div>
                 <JobInput jobUrl={jobUrl} setJobUrl={setJobUrl} jobText={jobText} setJobText={setJobText} />
-                
+
                 {/* Fixed Mobile Button Container */}
                 <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/95 backdrop-blur-md border-t border-slate-200 z-50 lg:static lg:bg-transparent lg:border-none lg:p-0 lg:mt-6">
                   <div className="max-w-7xl mx-auto lg:max-w-none">
@@ -396,8 +396,8 @@ function App() {
 
       {/* Floating AI Assistant - Only on results screen */}
       {currentScreen === 'results' && (
-        <FloatingChat 
-          onRegenerate={handleGenerate} 
+        <FloatingChat
+          onRegenerate={handleGenerate}
           hasSeenChat={hasSeenChat}
           setHasSeenChat={setHasSeenChat}
         />

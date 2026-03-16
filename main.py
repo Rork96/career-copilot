@@ -18,7 +18,7 @@ app = FastAPI(title="Career Copilot API v2")
 # Add CORS middleware to allow requests from the local frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Adjust this in production, e.g., ["http://localhost:5173"]
+    allow_origins=["http://cv.wealthifai.xyz", "http://localhost:5173"],  # Adjust this in production, e.g., ["http://cv.wealthifai.xyz"]
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

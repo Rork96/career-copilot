@@ -18,5 +18,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Expose FastAPI default port
 EXPOSE 8000
 
+# Видаляємо wget, просто копіюємо вже завантажений шрифт
+COPY DejaVuSans.ttf .
+
 # Run uvicorn server with hot-reload
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]

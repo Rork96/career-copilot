@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import PropTypes from 'prop-types';
 import axios from 'axios';
-import { Briefcase, Search, Loader2 } from 'lucide-react';
+import { Briefcase, DownloadCloud, Loader2 } from 'lucide-react';
 
 const API_BASE = 'http://localhost:8000/api';
 
@@ -53,10 +53,10 @@ export default function JobInput({ jobUrl, setJobUrl, jobText, setJobText }) {
                 <button
                     onClick={handleFetchJob}
                     disabled={isFetching || !jobUrl}
-                    className="flex items-center gap-2 px-5 py-2 bg-slate-800 text-white rounded-lg hover:bg-slate-700 disabled:opacity-50 transition-colors font-medium text-sm shadow-sm"
+                    className="flex items-center gap-2 px-5 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 disabled:opacity-50 transition-all font-bold text-sm shadow-md active:scale-95"
                 >
-                    {isFetching ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
-                    Fetch
+                    {isFetching ? <Loader2 size={16} className="animate-spin" /> : <DownloadCloud size={18} />}
+                    Import Job URL
                 </button>
             </div>
 
@@ -71,8 +71,8 @@ export default function JobInput({ jobUrl, setJobUrl, jobText, setJobText }) {
                 <textarea
                     value={jobText}
                     onChange={(e) => setJobText(e.target.value)}
-                    placeholder="Fetch from URL or manually paste the job description here..."
-                    className="w-full h-64 p-4 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none resize-none transition-shadow"
+                    placeholder="Import from URL or manually paste the job description here..."
+                    className="w-full h-64 p-4 text-sm border-2 border-dashed border-slate-200 bg-slate-50/50 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary outline-none resize-none transition-all"
                 />
                 <div className="absolute top-2 right-4 text-xs font-medium text-slate-400 bg-white px-1 opacity-0 group-focus-within:opacity-100 transition-opacity">
                     Editable

@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import PropTypes from 'prop-types';
 import axios from 'axios';
-import { FileText, Upload, Loader2 } from 'lucide-react';
+import { FileText, CloudUpload, Loader2 } from 'lucide-react';
 
 const API_BASE = 'http://localhost:8000/api';
 
@@ -46,7 +46,7 @@ export default function ResumeInput({ resumeText, setResumeText }) {
                 <div>
                     <input
                         type="file"
-                        accept=".pdf,.txt,.doc,.docx"
+                        accept=".pdf,.txt,.docx"
                         className="hidden"
                         ref={fileInputRef}
                         onChange={handleFileUpload}
@@ -54,10 +54,10 @@ export default function ResumeInput({ resumeText, setResumeText }) {
                     <button
                         onClick={() => fileInputRef.current?.click()}
                         disabled={isUploading}
-                        className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-lg text-sm font-medium transition-colors"
+                        className="flex items-center gap-2 px-4 py-2 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-lg text-sm font-semibold transition-colors border border-slate-200"
                     >
-                        {isUploading ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
-                        Upload PDF/TXT
+                        {isUploading ? <Loader2 size={16} className="animate-spin" /> : <CloudUpload size={18} />}
+                        Upload Resume (PDF/DOCX)
                     </button>
                 </div>
             </div>
@@ -68,7 +68,7 @@ export default function ResumeInput({ resumeText, setResumeText }) {
                 value={resumeText}
                 onChange={(e) => setResumeText(e.target.value)}
                 placeholder="Upload a file or paste your full resume here..."
-                className="w-full h-64 p-4 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none resize-none transition-shadow"
+                className="w-full h-64 p-4 text-sm border-2 border-dashed border-slate-200 bg-slate-50/50 rounded-xl focus:ring-2 focus:ring-primary focus:border-primary outline-none resize-none transition-all"
             />
         </div>
     );

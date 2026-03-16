@@ -172,13 +172,60 @@ export default function ResultTabs({ results, setResults, resumeText, jobText, a
         URL.revokeObjectURL(url);
     };
 
-    const handleDownloadPDF = () => {
-        const originalTitle = document.title;
-        const filename = `${(results.candidate_name || 'Candidate').replace(/\s+/g, '_')}_${(results.target_role || 'Role').replace(/\s+/g, '_')}_Resume`;
+    const handleDownloadWord = async () => {
+        try {
+            const filename = `${(results.candidate_name || 'Candidate').replace(/\s+/g, '_')}_Resume.docx`;
 
-        document.title = filename;
-        window.print();
-        document.title = originalTitle;
+            const response = await axios.post(`${API_BASE}/export-docx`, {
+                markdown_text: results.resume
+            }, {
+                responseType: 'blob'
+            });
+
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', filename);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error('DOCX Export failed:', error);
+            alert('Failed to export Word document. Please try again.');
+        }
+    };
+
+    const handleDownloadPDF = async () => {
+        try {
+            const markdownLines = results.resume.split('\n');
+            const firstLine = markdownLines.find(line => line.trim() !== '') || '';
+            const nameFromMarkdown = firstLine.replace(/[#*]/g, '').trim();
+
+            const safeName = (results.candidate_name && results.candidate_name !== 'Candidate')
+                ? results.candidate_name
+                : nameFromMarkdown;
+
+            const filename = `${safeName.replace(/\s+/g, '_')}_Resume`;
+
+            const response = await axios.post(`${API_BASE}/export-pdf`, {
+                markdown_text: results.resume,
+                filename: filename
+            }, {
+                responseType: 'blob'
+            });
+
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `${filename}.pdf`);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        } catch (error) {
+            console.error('PDF Export failed:', error);
+            alert('Failed to generate PDF. Please use TXT or Word for now.');
+        }
     };
 
     const generateCoverLetter = async () => {
@@ -243,188 +290,176 @@ export default function ResultTabs({ results, setResults, resumeText, jobText, a
     return (
         <div className="flex flex-col lg:flex-row gap-6 animate-in fade-in slide-in-from-bottom-2 duration-500 lg:h-[calc(100vh-120px)] overflow-hidden">
             {/* LEFT COLUMN: Insights */}
-            <div className="flex-1 lg:max-w-md space-y-6 overflow-y-auto hide-scrollbar pb-6">
+            <div className="flex-1 lg:max-w-md space-y-6 overflow-y-auto hide-scrollbar pb-6 print:hidden">
                 <h2 className="text-lg font-bold text-slate-800">Optimization Insights</h2>
-                    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
-                        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-2">
-                            <Zap size={12} className="text-primary" /> Core Analytics
-                            <div className="group relative">
-                                <Info size={12} className="text-slate-300 cursor-help" />
-                                <div className="absolute bottom-full mb-2 left-0 w-48 p-2 bg-slate-900 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
-                                    Overall score reflecting how well your resume matches the job description.
-                                </div>
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+                    <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+                        <Zap size={12} className="text-primary" /> Core Analytics
+                        <div className="group relative">
+                            <Info size={12} className="text-slate-300 cursor-help" />
+                            <div className="absolute bottom-full mb-2 left-0 w-48 p-2 bg-slate-900 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                                Overall score reflecting how well your resume matches the job description.
                             </div>
-                        </h3>
-                        <ComparisonGauges
-                            original={results.original_ats_score}
-                            optimized={results.optimized_ats_score}
-                            tone={results.detected_tone}
-                        />
+                        </div>
+                    </h3>
+                    <ComparisonGauges
+                        original={results.original_ats_score}
+                        optimized={results.optimized_ats_score}
+                        tone={results.detected_tone}
+                    />
+                </div>
+
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+                    <div className="flex bg-slate-50 border-b border-slate-100 p-1">
+                        <button
+                            onClick={() => setInsightTab('gaps')}
+                            className={`flex-1 py-2 text-xs font-bold uppercase tracking-wider rounded-lg transition-all flex items-center justify-center gap-2 ${insightTab === 'gaps' ? 'bg-white text-primary shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                        >
+                            <Target size={14} /> Target Skills
+                        </button>
+                        <button
+                            onClick={() => setInsightTab('roadmap')}
+                            className={`flex-1 py-2 text-xs font-bold uppercase tracking-wider rounded-lg transition-all flex items-center justify-center gap-2 ${insightTab === 'roadmap' ? 'bg-white text-primary shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
+                        >
+                            <TrendingUp size={14} /> Success Roadmap
+                        </button>
                     </div>
 
-                    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
-                        <div className="flex bg-slate-50 border-b border-slate-100 p-1">
-                            <button
-                                onClick={() => setInsightTab('gaps')}
-                                className={`flex-1 py-2 text-xs font-bold uppercase tracking-wider rounded-lg transition-all flex items-center justify-center gap-2 ${insightTab === 'gaps' ? 'bg-white text-primary shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
-                            >
-                                <Target size={14} /> Target Skills
-                            </button>
-                            <button
-                                onClick={() => setInsightTab('roadmap')}
-                                className={`flex-1 py-2 text-xs font-bold uppercase tracking-wider rounded-lg transition-all flex items-center justify-center gap-2 ${insightTab === 'roadmap' ? 'bg-white text-primary shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
-                            >
-                                <TrendingUp size={14} /> Success Roadmap
-                            </button>
-                        </div>
+                    <div className="p-4 flex-1">
+                        {insightTab === 'gaps' ? (
+                            <div className="space-y-4">
+                                {/* Gamified Progress Bar */}
+                                <div>
+                                    <div className="flex justify-between items-end mb-1.5">
+                                        <span className="text-xs font-bold text-slate-500 uppercase tracking-tight">Skills Matched</span>
+                                        <span className="text-sm font-black text-primary">
+                                            {Math.max(0, 10 - (results.missing_hard_skills?.length || 0))}/10
+                                        </span>
+                                    </div>
+                                    <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                                        <div
+                                            className="h-full bg-primary transition-all duration-1000 ease-out"
+                                            style={{ width: `${Math.max(10, (10 - (results.missing_hard_skills?.length || 0)) * 10)}%` }}
+                                        ></div>
+                                    </div>
+                                </div>
 
-                        <div className="p-4 flex-1">
-                            {insightTab === 'gaps' ? (
                                 <div className="space-y-4">
-                                    {/* Gamified Progress Bar */}
-                                    <div>
-                                        <div className="flex justify-between items-end mb-1.5">
-                                            <span className="text-xs font-bold text-slate-500 uppercase tracking-tight">Skills Matched</span>
-                                            <span className="text-sm font-black text-primary">
-                                                {Math.max(0, 10 - (results.missing_hard_skills?.length || 0))}/10
-                                            </span>
-                                        </div>
-                                        <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                                            <div
-                                                className="h-full bg-primary transition-all duration-1000 ease-out"
-                                                style={{ width: `${Math.max(10, (10 - (results.missing_hard_skills?.length || 0)) * 10)}%` }}
-                                            ></div>
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-4">
-                                        <div className="space-y-3">
-                                            <h4 className="text-xs font-black text-red-500 uppercase tracking-[0.1em] flex items-center gap-1.5">
-                                                <AlertTriangle size={12} /> Critical Gaps
-                                            </h4>
-                                            <div className="flex flex-wrap gap-2">
-                                                {results.missing_hard_skills && results.missing_hard_skills.length > 0 ? (
-                                                    results.missing_hard_skills.map((skill, idx) => (
-                                                        <div key={idx} className="px-3 py-1.5 bg-red-50 text-red-700 border border-red-100 rounded-lg flex items-center gap-2 text-xs font-bold shadow-sm transition-transform hover:scale-105">
-                                                            <span>{skill}</span>
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => handleAddToKnowledgeBase(skill)}
-                                                                disabled={addedSkills[skill]}
-                                                                className={`p-0.5 rounded transition-colors ${addedSkills[skill] ? 'text-green-500' : 'hover:bg-red-200 text-red-700'}`}
-                                                                title={addedSkills[skill] ? "Already in Knowledge Base" : "Add to Knowledge Base"}
-                                                            >
-                                                                {addedSkills[skill] ? <CheckCircle2 size={12} /> : <MessageSquarePlus size={12} />}
-                                                            </button>
-                                                        </div>
-                                                    ))
-                                                ) : (
-                                                    <p className="text-xs text-slate-400 italic py-1">No missing hard skills detected.</p>
-                                                )}
-                                            </div>
-                                        </div>
-
-                                        <div className="space-y-3">
-                                            <h4 className="text-xs font-black text-blue-500 uppercase tracking-[0.1em] flex items-center gap-1.5">
-                                                <Sparkles size={12} /> Keywords
-                                            </h4>
-                                            <div className="flex flex-wrap gap-2">
-                                                {results.keyword_optimizations && results.keyword_optimizations.length > 0 ? (
-                                                    results.keyword_optimizations.map((skill, idx) => (
-                                                        <div key={idx} className="px-3 py-1.5 bg-blue-50 text-blue-700 border border-blue-100 rounded-lg flex items-center gap-2 text-xs font-bold shadow-sm transition-transform hover:scale-105">
-                                                            <span>{skill}</span>
-                                                            <button
-                                                                type="button"
-                                                                className="hover:bg-blue-200 p-0.5 rounded transition-colors"
-                                                            >
-                                                                <BrainCircuit size={12} />
-                                                            </button>
-                                                        </div>
-                                                    ))
-                                                ) : (
-                                                    <p className="text-xs text-slate-400 italic py-1">Keywords fully optimized.</p>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* ATS Keyword Matrix */}
-                                    <div className="pt-4 border-t border-slate-100">
-                                        <div className="flex items-center justify-between mb-3">
-                                            <h4 className="text-xs font-black text-slate-500 uppercase tracking-[0.1em] flex items-center gap-1.5">
-                                                <ShieldCheck size={12} className="text-primary" /> ATS Keyword Matrix
-                                                <div className="group relative">
-                                                    <Info size={12} className="text-slate-300 cursor-help" />
-                                                    <div className="absolute bottom-full mb-2 left-0 w-48 p-2 bg-slate-900 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 capitalize">
-                                                        Comparison of target keywords across your original and tailored resume versions.
+                                    <div className="space-y-3">
+                                        <h4 className="text-xs font-black text-red-500 uppercase tracking-[0.1em] flex items-center gap-1.5">
+                                            <AlertTriangle size={12} /> Critical Gaps
+                                        </h4>
+                                        <div className="flex flex-wrap gap-2">
+                                            {results.missing_hard_skills && results.missing_hard_skills.length > 0 ? (
+                                                results.missing_hard_skills.map((skill, idx) => (
+                                                    <div key={idx} className="px-3 py-1.5 bg-red-50 text-red-700 border border-red-100 rounded-lg flex items-center gap-2 text-xs font-bold shadow-sm transition-transform hover:scale-105">
+                                                        <span>{skill}</span>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleAddToKnowledgeBase(skill)}
+                                                            disabled={addedSkills[skill]}
+                                                            className={`p-0.5 rounded transition-colors ${addedSkills[skill] ? 'text-green-500' : 'hover:bg-red-200 text-red-700'}`}
+                                                            title={addedSkills[skill] ? "Already in Knowledge Base" : "Add to Knowledge Base"}
+                                                        >
+                                                            {addedSkills[skill] ? <CheckCircle2 size={12} /> : <MessageSquarePlus size={12} />}
+                                                        </button>
                                                     </div>
-                                                </div>
-                                            </h4>
+                                                ))
+                                            ) : (
+                                                <p className="text-xs text-slate-400 italic py-1">No missing hard skills detected.</p>
+                                            )}
                                         </div>
-                                        <div className="overflow-hidden rounded-xl border border-slate-100 shadow-sm">
-                                            <table className="w-full text-left border-collapse">
+                                    </div>
+
+                                    <div className="space-y-3">
+                                        <h4 className="text-xs font-black text-blue-500 uppercase tracking-[0.1em] flex items-center gap-1.5">
+                                            <Sparkles size={12} /> Keywords
+                                        </h4>
+                                        <div className="flex flex-wrap gap-2">
+                                            {results.keyword_optimizations && results.keyword_optimizations.length > 0 ? (
+                                                results.keyword_optimizations.map((skill, idx) => (
+                                                    <div key={idx} className="px-3 py-1.5 bg-blue-50 text-blue-700 border border-blue-100 rounded-lg flex items-center gap-2 text-xs font-bold shadow-sm transition-transform hover:scale-105">
+                                                        <span>{skill}</span>
+                                                        <button
+                                                            type="button"
+                                                            className="hover:bg-blue-200 p-0.5 rounded transition-colors"
+                                                        >
+                                                            <BrainCircuit size={12} />
+                                                        </button>
+                                                    </div>
+                                                ))
+                                            ) : (
+                                                <p className="text-xs text-slate-400 italic py-1">Keywords fully optimized.</p>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* ATS Keyword Matrix */}
+                                <div className="pt-4 border-t border-slate-100">
+                                    <div className="flex items-center justify-between mb-3">
+                                        <h4 className="text-xs font-black text-slate-500 uppercase tracking-[0.1em] flex items-center gap-1.5">
+                                            <ShieldCheck size={12} className="text-primary" /> ATS Keyword Matrix
+                                        </h4>
+                                    </div>
+
+                                    {/* Фіксована висота контейнера, щоб нічого не стрибало */}
+                                    <div className="overflow-hidden rounded-xl border border-slate-200 shadow-sm bg-white h-[320px] flex flex-col">
+                                        <div className="flex-1 overflow-x-auto">
+                                            <table className="w-full text-left border-collapse table-fixed">
                                                 <thead>
                                                     <tr className="bg-slate-50/80 border-b border-slate-100">
-                                                        <th className="px-3 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Keyword</th>
-                                                        <th className="px-3 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-center">Original</th>
-                                                        <th className="px-3 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-center">Tailored</th>
+                                                        <th className="w-1/2 px-3 py-2.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Keyword</th>
+                                                        <th className="w-1/4 px-3 py-2.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-center">Was</th>
+                                                        <th className="w-1/4 px-3 py-2.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider text-center">Now</th>
                                                     </tr>
                                                 </thead>
-                                                <tbody className="divide-y divide-slate-50 min-h-[160px]">
-                                                    {(results.keywordMatrix || []).slice(matrixPage * 5, (matrixPage + 1) * 5).map((row, idx) => (
-                                                        <tr key={idx} className="hover:bg-slate-50/50 transition-colors h-9">
-                                                            <td className="px-3 py-2 text-xs font-semibold text-slate-700">{row.skill}</td>
-                                                            <td className="px-3 py-2 text-center text-xs">
-                                                                {row.in_original ? (
-                                                                    <Check size={14} className="text-green-500 mx-auto" strokeWidth={3} />
-                                                                ) : (
-                                                                    <X size={14} className="text-slate-300 mx-auto" strokeWidth={3} />
-                                                                )}
-                                                            </td>
-                                                            <td className="px-3 py-2 text-center text-xs">
-                                                                {row.in_tailored ? (
-                                                                    <Check size={14} className="text-blue-500 mx-auto" strokeWidth={3} />
-                                                                ) : (
-                                                                    <X size={14} className="text-slate-300 mx-auto" strokeWidth={3} />
-                                                                )}
-                                                            </td>
-                                                        </tr>
-                                                    ))}
-                                                    
-                                                    {(!results.keywordMatrix || results.keywordMatrix.length === 0) && (
-                                                        <tr key="empty-state">
-                                                            <td colSpan="3" className="px-3 py-6 text-center text-xs text-slate-400 italic">
-                                                                Regenerate to see keyword matrix.
-                                                            </td>
-                                                        </tr>
+                                                <tbody className="divide-y divide-slate-50">
+                                                    {results.keywordMatrix && results.keywordMatrix.length > 0 ? (
+                                                        <>
+                                                            {results.keywordMatrix.slice(matrixPage * 5, (matrixPage + 1) * 5).map((row, idx) => (
+                                                                <tr key={idx} className="hover:bg-slate-50/50 transition-colors h-[42px]">
+                                                                    <td className="px-3 py-1 text-xs font-semibold text-slate-700 truncate">{row.skill}</td>
+                                                                    <td className="px-3 py-1 text-center">
+                                                                        {row.in_original ? <Check size={14} className="text-green-500 mx-auto" /> : <X size={14} className="text-slate-300 mx-auto" />}
+                                                                    </td>
+                                                                    <td className="px-3 py-1 text-center">
+                                                                        {row.in_tailored ? <Check size={14} className="text-blue-500 mx-auto" /> : <X size={14} className="text-slate-300 mx-auto" />}
+                                                                    </td>
+                                                                </tr>
+                                                            ))}
+                                                            {/* Додаємо пусті рядки для стабільної висоти */}
+                                                            {Array.from({ length: Math.max(0, 5 - (results.keywordMatrix.slice(matrixPage * 5, (matrixPage + 1) * 5).length)) }).map((_, idx) => (
+                                                                <tr key={`empty-${idx}`} className="h-[42px]">
+                                                                    <td colSpan="3"></td>
+                                                                </tr>
+                                                            ))}
+                                                        </>
+                                                    ) : (
+                                                        <tr><td colSpan="3" className="text-center py-10 text-xs text-slate-400 italic">No data available</td></tr>
                                                     )}
-
-                                                    {/* Padding rows to maintain height */}
-                                                    {results.keywordMatrix?.length > 0 && Array.from({ length: Math.max(0, 5 - results.keywordMatrix.slice(matrixPage * 5, (matrixPage + 1) * 5).length) }).map((_, idx) => (
-                                                        <tr key={`empty-${idx}`} className="h-9">
-                                                            <td colSpan="3"></td>
-                                                        </tr>
-                                                    ))}
                                                 </tbody>
                                             </table>
                                         </div>
+
+                                        {/* ПАНЕЛЬ ПАГІНАЦІЇ: тепер з відступами */}
                                         {results.keywordMatrix && results.keywordMatrix.length > 5 && (
-                                            <div className="flex items-center justify-between mt-3 px-1">
-                                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                                                    Page {matrixPage + 1} of {Math.ceil(results.keywordMatrix.length / 5)}
+                                            <div className="bg-slate-50/50 border-t border-slate-100 p-3 flex items-center justify-between">
+                                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-2">
+                                                    {matrixPage + 1} / {Math.ceil(results.keywordMatrix.length / 5)}
                                                 </span>
-                                                <div className="flex gap-2">
+                                                <div className="flex gap-3 pr-1">
                                                     <button
                                                         onClick={() => setMatrixPage(Math.max(0, matrixPage - 1))}
                                                         disabled={matrixPage === 0}
-                                                        className="p-1 rounded bg-white border border-slate-200 text-slate-400 hover:text-primary disabled:opacity-30 disabled:hover:text-slate-400 transition-colors"
+                                                        className="p-1.5 rounded-lg bg-white border border-slate-200 text-slate-500 hover:text-primary disabled:opacity-30 transition-all shadow-sm"
                                                     >
                                                         <ChevronDown size={14} className="rotate-90" />
                                                     </button>
                                                     <button
                                                         onClick={() => setMatrixPage(Math.min(Math.ceil(results.keywordMatrix.length / 5) - 1, matrixPage + 1))}
                                                         disabled={matrixPage >= Math.ceil(results.keywordMatrix.length / 5) - 1}
-                                                        className="p-1 rounded bg-white border border-slate-200 text-slate-400 hover:text-primary disabled:opacity-30 disabled:hover:text-slate-400 transition-colors"
+                                                        className="p-1.5 rounded-lg bg-white border border-slate-200 text-slate-500 hover:text-primary disabled:opacity-30 transition-all shadow-sm"
                                                     >
                                                         <ChevronDown size={14} className="-rotate-90" />
                                                     </button>
@@ -433,78 +468,172 @@ export default function ResultTabs({ results, setResults, resumeText, jobText, a
                                         )}
                                     </div>
                                 </div>
-                            ) : (
-                                <div className="space-y-4 relative">
-                                    <div className="absolute left-3 top-0 bottom-0 w-0.5 bg-slate-100"></div>
-                                    <div className="space-y-4 relative z-10">
-                                        {results.recommendations && results.recommendations.length > 0 ? (
-                                            results.recommendations.map((rec, idx) => (
-                                                <div key={idx} className="flex gap-3 items-start group pl-1">
-                                                    <div className="flex-shrink-0 mt-0.5">
-                                                        <CheckCircle2 size={16} className="text-green-500 shadow-sm transition-transform group-hover:scale-110" />
-                                                    </div>
-                                                    <p className="text-sm text-slate-700 leading-relaxed font-bold">{rec}</p>
+                            </div>
+                        ) : (
+                            <div className="space-y-4 relative">
+                                <div className="absolute left-3 top-0 bottom-0 w-0.5 bg-slate-100"></div>
+                                <div className="space-y-4 relative z-10">
+                                    {results.recommendations && results.recommendations.length > 0 ? (
+                                        results.recommendations.map((rec, idx) => (
+                                            <div key={idx} className="flex gap-3 items-start group pl-1">
+                                                <div className="flex-shrink-0 mt-0.5">
+                                                    <CheckCircle2 size={16} className="text-green-500 shadow-sm transition-transform group-hover:scale-110" />
                                                 </div>
-                                            ))
-                                        ) : (
-                                            <div className="py-8 text-center">
-                                                <ShieldCheck size={24} className="mx-auto text-green-500 mb-2 opacity-50" />
-                                                <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">No recommendations</p>
+                                                <p className="text-sm text-slate-700 leading-relaxed font-bold">{rec}</p>
                                             </div>
-                                        )}
+                                        ))
+                                    ) : (
+                                        <div className="py-8 text-center">
+                                            <ShieldCheck size={24} className="mx-auto text-green-500 mb-2 opacity-50" />
+                                            <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">No recommendations</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {results.retrieved_achievements && results.retrieved_achievements.length > 0 && (
+                    <div className="mt-6">
+                        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+                            <BrainCircuit size={12} className="text-purple-500" /> Facts Integrated
+                        </h3>
+                        <div className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm space-y-2 max-h-[140px] overflow-y-auto">
+                            {results.retrieved_achievements.map((fact, idx) => (
+                                <div key={idx} className="flex gap-2 items-start p-2 bg-slate-50 rounded-lg border border-slate-100/50">
+                                    <CheckCircle2 size={14} className="text-green-500 mt-0.5 shrink-0" />
+                                    <p className="text-xs text-slate-700 leading-relaxed font-medium">{fact}</p>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* Optimization Impact */}
+                <div className="mt-6">
+                    <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+                        <Sparkles size={12} className="text-blue-500" /> Optimization Impact
+                    </h3>
+                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col overflow-hidden">
+                        {results.changesSummary && results.changesSummary.length > 0 && (
+                            <div className="p-4 border-b border-slate-200 bg-blue-50/30 shrink-0">
+                                <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-1.5"><FileText size={12} /> Executive Summary</h4>
+                                <ul className="space-y-2">
+                                    {results.changesSummary.map((change, i) => (
+                                        <li key={i} className="text-xs text-slate-700 flex items-start gap-2 leading-relaxed"><Check size={14} className="text-blue-500 shrink-0 mt-0.5" /> {change}</li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
+                        <div className="grid grid-cols-12 px-4 py-2.5 bg-slate-50/80 border-b border-slate-200/80 shrink-0">
+                            <div className="col-span-5 text-xs font-bold text-slate-400 uppercase tracking-wider">Source Fact</div>
+                            <div className="col-span-1"></div>
+                            <div className="col-span-6 text-xs font-bold text-blue-500 uppercase tracking-wider">Tailored Improvement</div>
+                        </div>
+                        <div className="divide-y divide-slate-100">
+                            {results.bulletComparisons && results.bulletComparisons.length > 0 ? (
+                                results.bulletComparisons.map((item, idx) => (
+                                    <div key={idx} className="grid grid-cols-12 gap-4 p-4 items-center group hover:bg-slate-50 transition-colors">
+                                        <div className="col-span-5">
+                                            <p className="text-xs text-slate-500 italic leading-relaxed">"{item.old}"</p>
+                                        </div>
+                                        <div className="col-span-1 flex justify-center text-slate-400">
+                                            <ArrowRight size={16} />
+                                        </div>
+                                        <div className="col-span-6">
+                                            <p className="text-sm text-slate-900 font-semibold leading-relaxed">
+                                                {item.new}
+                                            </p>
+                                        </div>
                                     </div>
+                                ))
+                            ) : (
+                                <div className="p-12 text-center text-slate-400 text-sm italic">
+                                    General ATS formatting applied.
                                 </div>
                             )}
                         </div>
                     </div>
+                </div>
+            </div>
 
-                    {results.retrieved_achievements && results.retrieved_achievements.length > 0 && (
-                        <div className="mt-6">
-                            <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-2">
-                                <BrainCircuit size={12} className="text-purple-500" /> Facts Integrated
-                            </h3>
-                            <div className="bg-white p-3 rounded-xl border border-slate-100 shadow-sm space-y-2 max-h-[140px] overflow-y-auto">
-                                {results.retrieved_achievements.map((fact, idx) => (
-                                    <div key={idx} className="flex gap-2 items-start p-2 bg-slate-50 rounded-lg border border-slate-100/50">
-                                        <CheckCircle2 size={14} className="text-green-500 mt-0.5 shrink-0" />
-                                        <p className="text-xs text-slate-700 leading-relaxed font-medium">{fact}</p>
-                                    </div>
-                                ))}
-                            </div>
+            {/* RIGHT COLUMN: Document Viewer */}
+            <div className="flex-[2] overflow-y-auto bg-slate-100 rounded-2xl flex flex-col print:col-span-3 print:w-full print:shadow-none print:border-none print:bg-white print:overflow-visible">
+                <div className="sticky top-0 z-10 bg-slate-100/80 backdrop-blur-md border-b border-white/20 p-4 print:hidden">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <div className="flex bg-slate-200/50 p-1 rounded-lg w-full sm:w-auto overflow-x-auto whitespace-nowrap hide-scrollbar">
+                            {tabs.map((tab) => (
+                                <button
+                                    key={tab.id}
+                                    onClick={() => setActiveTab(tab.id)}
+                                    className={`px-4 py-1.5 font-bold text-xs rounded-md transition-all
+                                        ${activeTab === tab.id
+                                            ? 'bg-white text-primary shadow-sm'
+                                            : 'text-slate-500 hover:text-slate-900'
+                                        }
+                                    `}
+                                >
+                                    {tab.label}
+                                </button>
+                            ))}
                         </div>
-                    )}
 
-                    {/* Optimization Impact */}
-                    <div className="mt-6">
-                        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3 flex items-center gap-2">
-                            <Sparkles size={12} className="text-blue-500" /> Optimization Impact
-                        </h3>
-                        <div className="bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col overflow-hidden">
-                            <div className="grid grid-cols-12 px-4 py-2.5 bg-slate-50/80 border-b border-slate-200/80 shrink-0">
-                                <div className="col-span-5 text-xs font-bold text-slate-400 uppercase tracking-wider">Source Fact</div>
-                                <div className="col-span-1"></div>
-                                <div className="col-span-6 text-xs font-bold text-blue-500 uppercase tracking-wider">Tailored Improvement</div>
-                            </div>
-                            <div className="divide-y divide-slate-100">
-                                {results.bulletComparisons && results.bulletComparisons.length > 0 ? (
-                                    results.bulletComparisons.map((item, idx) => (
-                                        <div key={idx} className="grid grid-cols-12 gap-4 p-4 items-center group hover:bg-slate-50 transition-colors">
-                                            <div className="col-span-5">
-                                                <p className="text-xs text-slate-500 italic leading-relaxed">"{item.old}"</p>
-                                            </div>
-                                            <div className="col-span-1 flex justify-center text-slate-400">
-                                                <ArrowRight size={16} />
-                                            </div>
-                                            <div className="col-span-6">
-                                                <p className="text-sm text-slate-900 font-semibold leading-relaxed">
-                                                    {item.new}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    ))
-                                ) : (
-                                    <div className="p-12 text-center text-slate-400 text-sm italic">
-                                        General ATS formatting applied.
+                        <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                            {activeTab === 'resume' && (
+                                <button
+                                    onClick={() => setIsEditing(!isEditing)}
+                                    className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center gap-2 transition-all ${isEditing
+                                        ? 'bg-amber-100 text-amber-700 border border-amber-200 shadow-inner'
+                                        : 'bg-white border border-slate-200 text-slate-600 hover:border-primary hover:text-primary hover:shadow-sm'
+                                        }`}
+                                    title={isEditing ? "Save & Preview" : "Edit Markdown"}
+                                >
+                                    <Edit3 size={14} /> {isEditing ? 'Done' : 'Edit'}
+                                </button>
+                            )}
+
+                            <button
+                                onClick={handleCopy}
+                                className="p-2 border border-slate-200 bg-white hover:border-primary hover:text-primary text-slate-500 rounded-lg shadow-sm transition-all"
+                                title="Copy"
+                            >
+                                {copied ? <Check size={14} className="text-green-600" /> : <Copy size={14} />}
+                            </button>
+
+                            <div className="relative">
+                                <button
+                                    onClick={() => setIsExportOpen(!isExportOpen)}
+                                    onBlur={() => setTimeout(() => setIsExportOpen(false), 200)}
+                                    className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-bold uppercase tracking-wider flex items-center gap-2 shadow-lg transition-transform active:scale-95"
+                                >
+                                    <Download size={14} /> Export <ChevronDown size={12} className={`transition-transform duration-200 ${isExportOpen ? 'rotate-180' : ''}`} />
+                                </button>
+
+                                {isExportOpen && (
+                                    <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-200 rounded-xl shadow-xl z-50 py-1 animate-in fade-in zoom-in-95 duration-100">
+                                        {activeTab === 'resume' && (
+                                            <>
+                                                <button
+                                                    onClick={() => { handleDownloadPDF(); setIsExportOpen(false); }}
+                                                    className="w-full text-left px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors"
+                                                >
+                                                    <FileText size={16} className="text-blue-600" /> Export as PDF
+                                                </button>
+                                                <button
+                                                    onClick={() => { handleDownloadWord(); setIsExportOpen(false); }}
+                                                    className="w-full text-left px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors border-t border-slate-50"
+                                                >
+                                                    <FileText size={16} className="text-blue-500" /> Export as Word
+                                                </button>
+                                            </>
+                                        )}
+                                        <button
+                                            onClick={() => { handleDownload(); setIsExportOpen(false); }}
+                                            className="w-full text-left px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors border-t border-slate-50"
+                                        >
+                                            <FileText size={16} className="text-slate-500" /> Export as TXT
+                                        </button>
                                     </div>
                                 )}
                             </div>
@@ -512,193 +641,118 @@ export default function ResultTabs({ results, setResults, resumeText, jobText, a
                     </div>
                 </div>
 
-                {/* RIGHT COLUMN: Document Viewer */}
-                <div className="flex-[2] overflow-y-auto bg-slate-100 rounded-2xl flex flex-col">
-                    <div className="sticky top-0 z-10 bg-slate-100/80 backdrop-blur-md border-b border-white/20 p-4">
-                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                            <div className="flex bg-slate-200/50 p-1 rounded-lg w-full sm:w-auto overflow-x-auto whitespace-nowrap hide-scrollbar">
-                                {tabs.map((tab) => (
-                                    <button
-                                        key={tab.id}
-                                        onClick={() => setActiveTab(tab.id)}
-                                        className={`px-4 py-1.5 font-bold text-xs rounded-md transition-all
-                                        ${activeTab === tab.id
-                                                ? 'bg-white text-primary shadow-sm'
-                                                : 'text-slate-500 hover:text-slate-900'
-                                            }
-                                    `}
-                                    >
-                                        {tab.label}
-                                    </button>
-                                ))}
-                            </div>
-
-                            <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-                                {activeTab === 'resume' && (
-                                    <button
-                                        onClick={() => setIsEditing(!isEditing)}
-                                        className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center gap-2 transition-all ${isEditing
-                                            ? 'bg-amber-100 text-amber-700 border border-amber-200 shadow-inner'
-                                            : 'bg-white border border-slate-200 text-slate-600 hover:border-primary hover:text-primary hover:shadow-sm'
-                                            }`}
-                                        title={isEditing ? "Save & Preview" : "Edit Markdown"}
-                                    >
-                                        <Edit3 size={14} /> {isEditing ? 'Done' : 'Edit'}
-                                    </button>
-                                )}
-
-                                <button
-                                    onClick={handleCopy}
-                                    className="p-2 border border-slate-200 bg-white hover:border-primary hover:text-primary text-slate-500 rounded-lg shadow-sm transition-all"
-                                    title="Copy"
-                                >
-                                    {copied ? <Check size={14} className="text-green-600" /> : <Copy size={14} />}
-                                </button>
-
-                                <div className="relative">
-                                    <button
-                                        onClick={() => setIsExportOpen(!isExportOpen)}
-                                        onBlur={() => setTimeout(() => setIsExportOpen(false), 200)}
-                                        className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-bold uppercase tracking-wider flex items-center gap-2 shadow-lg transition-transform active:scale-95"
-                                    >
-                                        <Download size={14} /> Export <ChevronDown size={12} className={`transition-transform duration-200 ${isExportOpen ? 'rotate-180' : ''}`} />
-                                    </button>
-
-                                    {isExportOpen && (
-                                        <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-200 rounded-xl shadow-xl z-50 py-1 animate-in fade-in zoom-in-95 duration-100">
-                                            {activeTab === 'resume' && (
-                                                <button
-                                                    onClick={() => { handleDownloadPDF(); setIsExportOpen(false); }}
-                                                    className="w-full text-left px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors"
-                                                >
-                                                    <FileText size={16} className="text-blue-600" /> Export as PDF
-                                                </button>
-                                            )}
-                                            <button
-                                                onClick={() => { handleDownload(); setIsExportOpen(false); }}
-                                                className="w-full text-left px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors"
-                                            >
-                                                <FileText size={16} className="text-slate-500" /> Export as TXT
-                                            </button>
-                                        </div>
+                <div className="p-0 flex-1 flex flex-col items-center py-10 print:py-0 print:m-0">
+                    <div className="max-w-[816px] w-full mx-auto px-4 md:px-0 print:p-0 print:m-0">
+                        {activeTab === 'resume' && (
+                            <div className="bg-white shadow-2xl p-12 md:p-16 min-h-[1056px] w-full max-w-[816px] mx-auto border border-slate-200 animate-in zoom-in-95 duration-500 transform origin-top print:p-0 print:m-0 print:shadow-none print:border-none">
+                                <div id="printable-resume" className="prose prose-sm max-w-none prose-slate prose-headings:text-slate-900 prose-headings:font-bold prose-p:text-slate-700 prose-li:text-slate-700 h-full print:w-full print:max-w-none print:m-0 print:p-0 print:text-black">
+                                    {isEditing ? (
+                                        <textarea
+                                            value={results.resume}
+                                            onChange={(e) => setResults(prev => ({ ...prev, resume: e.target.value }))}
+                                            className="w-full h-[950px] p-10 border-2 border-primary/20 rounded-xl font-mono text-sm leading-relaxed focus:outline-none focus:border-primary transition-all resize-none bg-slate-50/50 shadow-inner"
+                                            placeholder="Edit your resume markdown here..."
+                                        />
+                                    ) : (
+                                        <ReactMarkdown
+                                            components={{
+                                                h1: ({ children }) => <h1 className="text-3xl font-bold uppercase tracking-tight text-center border-b-2 border-slate-900 pb-4 mb-8 print:break-after-avoid print:mt-0">{children}</h1>,
+                                                h2: ({ children }) => <h2 className="text-base font-bold uppercase tracking-widest border-b border-slate-300 mt-10 mb-5 pb-1 print:break-after-avoid print:mt-6">{children}</h2>,
+                                                h3: ({ children }) => <h3 className="text-sm font-bold mt-6 mb-2">{children}</h3>,
+                                                p: ({ children }) => <p className="text-xs leading-relaxed mb-3 text-justify print:break-inside-avoid">{children}</p>,
+                                                ul: ({ children }) => <ul className="list-disc ml-6 space-y-2 mb-6">{children}</ul>,
+                                                li: ({ children }) => <li className="text-xs mb-2 leading-relaxed print:break-inside-avoid">{children}</li>,
+                                            }}
+                                        >
+                                            {results.resume}
+                                        </ReactMarkdown>
                                     )}
                                 </div>
                             </div>
-                        </div>
+                        )}
+
+                        {activeTab === 'coverLetter' && (
+                            <div className="bg-white p-10 rounded-xl shadow-sm border border-slate-200 max-w-2xl mx-auto min-h-[600px]">
+                                {results.coverLetter ? (
+                                    <div className="prose prose-sm max-w-none prose-slate">
+                                        <ReactMarkdown>{results.coverLetter}</ReactMarkdown>
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">
+                                        <div className="p-4 bg-blue-50 text-primary rounded-2xl">
+                                            <FileText size={32} />
+                                        </div>
+                                        <h3 className="text-lg font-black text-slate-800">Generate Cover Letter</h3>
+                                        <button
+                                            onClick={generateCoverLetter}
+                                            disabled={isGenerating.coverLetter}
+                                            className="px-6 py-3 bg-primary text-white rounded-xl font-bold shadow-md hover:-translate-y-0.5 transition-all text-xs disabled:opacity-50"
+                                        >
+                                            {isGenerating.coverLetter ? <Loader2 size={16} className="animate-spin" /> : 'Create Cover Letter'}
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {activeTab === 'research' && (
+                            <div className="bg-white p-10 rounded-xl shadow-sm border border-slate-200 max-w-2xl mx-auto min-h-[600px] overflow-hidden">
+                                {results.research ? (
+                                    <div className="prose prose-sm max-w-none prose-slate mx-auto">
+                                        <ReactMarkdown>{results.research}</ReactMarkdown>
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">
+                                        <div className="p-4 bg-slate-50 text-slate-600 rounded-2xl">
+                                            <Building size={32} />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <h3 className="text-lg font-black text-slate-800">Company Research</h3>
+                                            <p className="text-xs text-slate-500 max-w-[280px] mx-auto">Analyze the company's culture, business model, and strategic questions for your interview.</p>
+                                        </div>
+                                        <button
+                                            onClick={generateResearch}
+                                            disabled={isGenerating.research}
+                                            className="px-6 py-3 bg-slate-900 text-white rounded-xl font-bold shadow-md hover:-translate-y-0.5 transition-all text-xs disabled:opacity-50 flex items-center gap-2"
+                                        >
+                                            {isGenerating.research ? <Loader2 size={16} className="animate-spin" /> : <><Search size={14} /> Analyze Company</>}
+                                        </button>
+                                        {errors.research && <p className="text-xs text-red-500 font-bold mt-4 bg-red-50 px-4 py-2 rounded-full border border-red-100">{errors.research}</p>}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {activeTab === 'interview' && (
+                            <div className="bg-white p-10 rounded-xl shadow-sm border border-slate-200 max-w-2xl mx-auto min-h-[600px]">
+                                {results.interview ? (
+                                    <div className="prose prose-sm max-w-none prose-slate">
+                                        <ReactMarkdown>{results.interview}</ReactMarkdown>
+                                    </div>
+                                ) : (
+                                    <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">
+                                        <div className="p-4 bg-purple-50 text-purple-600 rounded-2xl">
+                                            <BrainCircuit size={32} />
+                                        </div>
+                                        <h3 className="text-lg font-black text-slate-800">Predict Interview Questions</h3>
+                                        <button
+                                            onClick={generateInterview}
+                                            disabled={isGenerating.interview}
+                                            className="px-6 py-3 bg-purple-600 text-white rounded-xl font-bold shadow-md hover:-translate-y-0.5 transition-all text-xs disabled:opacity-50"
+                                        >
+                                            {isGenerating.interview ? <Loader2 size={16} className="animate-spin" /> : 'Predict Questions'}
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
 
-                    <div className="p-0 flex-1 flex flex-col items-center py-10">
-                        <div className="max-w-[816px] w-full mx-auto px-4 md:px-0">
-                            {activeTab === 'resume' && (
-                                <div className="bg-white shadow-2xl p-12 md:p-16 min-h-[1056px] w-full max-w-[816px] mx-auto border border-slate-200 animate-in zoom-in-95 duration-500 transform origin-top">
-                                    <div id="printable-resume" className="prose prose-sm max-w-none prose-slate prose-headings:text-slate-900 prose-headings:font-bold prose-p:text-slate-700 prose-li:text-slate-700 h-full">
-                                        {isEditing ? (
-                                            <textarea
-                                                value={results.resume}
-                                                onChange={(e) => setResults(prev => ({ ...prev, resume: e.target.value }))}
-                                                className="w-full h-[950px] p-10 border-2 border-primary/20 rounded-xl font-mono text-sm leading-relaxed focus:outline-none focus:border-primary transition-all resize-none bg-slate-50/50 shadow-inner"
-                                                placeholder="Edit your resume markdown here..."
-                                            />
-                                        ) : (
-                                            <ReactMarkdown
-                                                components={{
-                                                    h1: ({ children }) => <h1 className="text-3xl font-bold uppercase tracking-tight text-center border-b-2 border-slate-900 pb-4 mb-8">{children}</h1>,
-                                                    h2: ({ children }) => <h2 className="text-base font-bold uppercase tracking-widest border-b border-slate-300 mt-10 mb-5 pb-1">{children}</h2>,
-                                                    h3: ({ children }) => <h3 className="text-sm font-bold mt-6 mb-2">{children}</h3>,
-                                                    p: ({ children }) => <p className="text-xs leading-relaxed mb-3 text-justify">{children}</p>,
-                                                    ul: ({ children }) => <ul className="list-disc ml-6 space-y-2 mb-6">{children}</ul>,
-                                                    li: ({ children }) => <li className="text-xs mb-2 leading-relaxed">{children}</li>,
-                                                }}
-                                            >
-                                                {results.resume}
-                                            </ReactMarkdown>
-                                        )}
-                                    </div>
-                                </div>
-                            )}
-
-                            {activeTab === 'coverLetter' && (
-                                <div className="bg-white p-10 rounded-xl shadow-sm border border-slate-200 max-w-2xl mx-auto min-h-[600px]">
-                                    {results.coverLetter ? (
-                                        <div className="prose prose-sm max-w-none prose-slate">
-                                            <ReactMarkdown>{results.coverLetter}</ReactMarkdown>
-                                        </div>
-                                    ) : (
-                                        <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">
-                                            <div className="p-4 bg-blue-50 text-primary rounded-2xl">
-                                                <FileText size={32} />
-                                            </div>
-                                            <h3 className="text-lg font-black text-slate-800">Generate Cover Letter</h3>
-                                            <button
-                                                onClick={generateCoverLetter}
-                                                disabled={isGenerating.coverLetter}
-                                                className="px-6 py-3 bg-primary text-white rounded-xl font-bold shadow-md hover:-translate-y-0.5 transition-all text-xs disabled:opacity-50"
-                                            >
-                                                {isGenerating.coverLetter ? <Loader2 size={16} className="animate-spin" /> : 'Create Cover Letter'}
-                                            </button>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-
-                            {activeTab === 'research' && (
-                                <div className="bg-white p-10 rounded-xl shadow-sm border border-slate-200 max-w-2xl mx-auto min-h-[600px] overflow-hidden">
-                                    {results.research ? (
-                                        <div className="prose prose-sm max-w-none prose-slate mx-auto">
-                                            <ReactMarkdown>{results.research}</ReactMarkdown>
-                                        </div>
-                                    ) : (
-                                        <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">
-                                            <div className="p-4 bg-slate-50 text-slate-600 rounded-2xl">
-                                                <Building size={32} />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <h3 className="text-lg font-black text-slate-800">Company Research</h3>
-                                                <p className="text-xs text-slate-500 max-w-[280px] mx-auto">Analyze the company's culture, business model, and strategic questions for your interview.</p>
-                                            </div>
-                                            <button
-                                                onClick={generateResearch}
-                                                disabled={isGenerating.research}
-                                                className="px-6 py-3 bg-slate-900 text-white rounded-xl font-bold shadow-md hover:-translate-y-0.5 transition-all text-xs disabled:opacity-50 flex items-center gap-2"
-                                            >
-                                                {isGenerating.research ? <Loader2 size={16} className="animate-spin" /> : <><Search size={14} /> Analyze Company</>}
-                                            </button>
-                                            {errors.research && <p className="text-xs text-red-500 font-bold mt-4 bg-red-50 px-4 py-2 rounded-full border border-red-100">{errors.research}</p>}
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-
-                            {activeTab === 'interview' && (
-                                <div className="bg-white p-10 rounded-xl shadow-sm border border-slate-200 max-w-2xl mx-auto min-h-[600px]">
-                                    {results.interview ? (
-                                        <div className="prose prose-sm max-w-none prose-slate">
-                                            <ReactMarkdown>{results.interview}</ReactMarkdown>
-                                        </div>
-                                    ) : (
-                                        <div className="flex flex-col items-center justify-center py-20 text-center space-y-4">
-                                            <div className="p-4 bg-purple-50 text-purple-600 rounded-2xl">
-                                                <BrainCircuit size={32} />
-                                            </div>
-                                            <h3 className="text-lg font-black text-slate-800">Predict Interview Questions</h3>
-                                            <button
-                                                onClick={generateInterview}
-                                                disabled={isGenerating.interview}
-                                                className="px-6 py-3 bg-purple-600 text-white rounded-xl font-bold shadow-md hover:-translate-y-0.5 transition-all text-xs disabled:opacity-50"
-                                            >
-                                                {isGenerating.interview ? <Loader2 size={16} className="animate-spin" /> : 'Predict Questions'}
-                                            </button>
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="mt-12 mb-8">
-                            <p className="text-[10px] text-slate-400 text-center max-w-md mx-auto">
-                                <strong>Disclaimer:</strong> AI can occasionally make mistakes or hallucinate facts. Please review your tailored resume and generated documents carefully to ensure all information is 100% accurate before applying.
-                            </p>
-                        </div>
+                    <div className="mt-12 mb-8 print:hidden"> {/* Додали print:hidden */}
+                        <p className="text-[10px] text-slate-400 text-center max-w-md mx-auto">
+                            <strong>Disclaimer:</strong> AI can occasionally make mistakes...
+                        </p>
+                    </div>
                 </div>
             </div>
 
@@ -706,7 +760,7 @@ export default function ResultTabs({ results, setResults, resumeText, jobText, a
             <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
                 <ResumePDFTemplate resumeData={results.resume} />
             </div>
-        </div>
+        </div >
     );
 }
 

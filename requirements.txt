@@ -6,3 +6,5 @@ beautifulsoup4
 requests
 pydantic
 python-multipart
+python-docx
+fpdf2

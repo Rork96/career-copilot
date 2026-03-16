@@ -92,6 +92,7 @@ export default function SettingsModal({ isOpen, onClose, apiKey, setApiKey, prom
                                     </button>
                                 </div>
                                 {testError && <p className="text-[10px] text-red-500 mt-1 font-medium">{testError}</p>}
+                                <p className="text-[10px] text-slate-400 mt-1">Don't have one? <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">Get a free Google Gemini key</a>. Stored locally.</p>
                             </div>
 
                             <div>

@@ -177,7 +177,7 @@ export default function FloatingChat({ onRegenerate, hasSeenChat, setHasSeenChat
                         <div className={`p-3 rounded-2xl text-sm leading-relaxed shadow-sm ${msg.role === 'user' ? 'bg-slate-900 text-white rounded-tr-none' : 'bg-white border border-slate-200 text-slate-700 rounded-tl-none'}`}>
                           {msg.text}
                         </div>
-                        {msg.role === 'assistant' && msg.action === 'add_fact' && (
+                        {msg.role === 'assistant' && (msg.action === 'add_fact' || msg.action === 'tweak_resume' || msg.action === 'trigger_generate') && (
                           <button
                             onClick={() => {
                               onRegenerate?.();

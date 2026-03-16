@@ -7,6 +7,7 @@ import JobInput from './components/JobInput';
 import SettingsModal from './components/SettingsModal';
 import ResultTabs from './components/ResultTabs';
 import FloatingChat from './components/FloatingChat';
+import Landing from './components/Landing';
 import './App.css';
 
 const API_BASE = 'http://localhost:8000/api';
@@ -196,7 +197,7 @@ function App() {
     axios.defaults.headers.common['X-Gemini-API-Key'] = apiKey;
 
     try {
-      const resumeRes = await axios.post(`${API_BASE}/optimize-resume`, {
+      const resumeRes = await axios.post(`${API_BASE}/optimize-resume-v2`, {
         ...basePayload,
         custom_prompt: `${prompts.resume}\n\nGLOBAL RULES TO FOLLOW:\n${prompts.globalRules}`
       });
@@ -225,6 +226,10 @@ function App() {
       setErrorMsg(err.response?.data?.detail || "An error occurred during AI generation.");
     }
   };
+
+  if (currentScreen === 'landing') {
+    return <Landing onStart={() => setCurrentScreen('workspace')} />;
+  }
 
   return (
     <div className="min-h-screen font-sans bg-slate-50 text-slate-900 pb-12">
@@ -256,102 +261,55 @@ function App() {
       {/* MAIN CONTENT AREA BY SCREEN */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
 
-        {/* === SCREEN 1: LANDING === */}
-        {currentScreen === 'landing' && (
-          <div className="flex flex-col items-center justify-center min-h-[70vh] text-center space-y-12">
-
-            {/* Hero */}
-            <div className="space-y-6">
-              <Sparkles size={64} className="text-primary mx-auto mb-4" />
-              <h2 className="text-4xl md:text-6xl font-extrabold text-slate-800 tracking-tight leading-tight">
-                Tailor Your Application <br className="hidden md:block" /> in <span className="text-primary">Seconds</span>
-              </h2>
-              <p className="text-lg md:text-xl text-slate-600 max-w-2xl mx-auto">
-                Use the power of AI to automatically adapt your master resume and generate customized cover letters that bypass ATS screens.
-              </p>
-              <div className="pt-4">
-                <button
-                  onClick={() => setCurrentScreen('workspace')}
-                  className="px-8 py-4 bg-primary text-white font-bold text-lg rounded-xl shadow-[0_8px_30px_rgb(59,130,246,0.3)] hover:bg-blue-600 hover:-translate-y-1 transition-all"
-                >
-                  Start Tailoring Now
-                </button>
-              </div>
-            </div>
-
-            {/* How it Works & Privacy */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-left max-w-5xl mx-auto pt-10 border-t border-slate-200">
-              <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-                <h3 className="text-xl font-bold text-slate-800 mb-4">How It Works</h3>
-                <ul className="space-y-4">
-                  <li className="flex gap-3 text-slate-600"><div className="w-6 h-6 rounded-full bg-blue-100 text-primary flex items-center justify-center font-bold shrink-0 text-sm">1</div> Paste your Master Resume (or upload PDF).</li>
-                  <li className="flex gap-3 text-slate-600"><div className="w-6 h-6 rounded-full bg-blue-100 text-primary flex items-center justify-center font-bold shrink-0 text-sm">2</div> Paste the URL of the job you want.</li>
-                  <li className="flex gap-3 text-slate-600"><div className="w-6 h-6 rounded-full bg-blue-100 text-primary flex items-center justify-center font-bold shrink-0 text-sm">3</div> Our AI restructures your resume, checks for hallucinations, and preps you for the interview.</li>
-                </ul>
-              </div>
-
-              <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-                <h3 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
-                  <Settings size={20} className="text-slate-400" />
-                  Privacy First (BYOK)
-                </h3>
-                <p className="text-slate-600 mb-4 text-sm leading-relaxed">
-                  Career Copilot operates fully in your browser. We do not store your resumes or data on our servers. You Bring Your Own Key (BYOK) from Google Gemini.
-                </p>
-                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                  <h4 className="font-semibold text-slate-800 text-sm mb-2">How to get a free Gemini API Key?</h4>
-                  <ol className="text-xs text-slate-600 space-y-2 list-decimal list-inside">
-                    <li>Go to <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="text-primary hover:underline">Google AI Studio</a>.</li>
-                    <li>Sign in and click <strong>Create API Key</strong>.</li>
-                    <li>Copy the key.</li>
-                    <li>Click 'Settings' (top right) to paste it.</li>
-                  </ol>
-                </div>
-              </div>
-            </div>
-
-          </div>
-        )}
-
         {/* === SCREEN 2: WORKSPACE === */}
         {currentScreen === 'workspace' && (
           <div className="pb-24 lg:pb-0">
-            {/* Onboarding Banner */}
-            <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4 mb-6 flex items-start gap-3">
+            {/* New Onboarding Banner */}
+            <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4 mb-6 flex items-start gap-3 animate-in fade-in slide-in-from-top-2 duration-500">
               <Sparkles className="text-indigo-500 shrink-0 mt-0.5" size={18} />
               <p className="text-sm text-indigo-900">
-                <strong>Welcome to Career Copilot!</strong> Paste your master resume on the left, the target job on the right, and let our AI optimize your application to Canadian ATS standards.
+                <strong>Welcome to Career Copilot!</strong> Paste your master resume on the left, the target job on the right, and let our AI optimize your application.
               </p>
             </div>
 
             {!apiKey && (
-              <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-3">
+              <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-3 scale-95 opacity-80">
                 <AlertCircle className="text-amber-600 shrink-0 mt-0.5" size={20} />
                 <div>
-                  <h3 className="text-amber-800 font-semibold mb-1">API Key Required</h3>
-                  <p className="text-amber-700 text-sm">Please configure your Google Gemini API key in the settings to start generating tailored resumes.</p>
+                  <h3 className="text-amber-800 font-semibold mb-1 text-sm">API Key Required</h3>
+                  <p className="text-amber-700 text-xs text-balance">Configure your Gemini key in settings to unlock AI Optimization.</p>
+                  <p className="text-[10px] text-slate-400 mt-1">Don't have one? <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">Get a free Google Gemini key</a>. Stored locally.</p>
                 </div>
               </div>
             )}
             
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full items-start">
+            {/* 50/50 Split Screen Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 h-full items-start">
               <div className="space-y-6">
+                <div className="flex items-center gap-2 text-slate-400 mb-2">
+                  <span className="w-6 h-6 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center text-[10px] font-bold">1</span>
+                  <span className="text-xs font-bold uppercase tracking-widest">Master Resume</span>
+                </div>
                 <ResumeInput resumeText={resumeText} setResumeText={setResumeText} />
               </div>
               <div className="space-y-6">
+                <div className="flex items-center gap-2 text-slate-400 mb-2">
+                  <span className="w-6 h-6 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center text-[10px] font-bold">2</span>
+                  <span className="text-xs font-bold uppercase tracking-widest">Target Job</span>
+                </div>
                 <JobInput jobUrl={jobUrl} setJobUrl={setJobUrl} jobText={jobText} setJobText={setJobText} />
                 
-                {/* Generate Button Container */}
-                <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/90 backdrop-blur-sm border-t border-slate-200 z-50 lg:static lg:bg-transparent lg:border-none lg:p-0 lg:mt-6">
+                {/* Fixed Mobile Button Container */}
+                <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/95 backdrop-blur-md border-t border-slate-200 z-50 lg:static lg:bg-transparent lg:border-none lg:p-0 lg:mt-6">
                   <div className="max-w-7xl mx-auto lg:max-w-none">
                     <button
                       onClick={handleGenerate}
-                      className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-gradient-to-r from-blue-600 to-primary hover:from-blue-700 hover:to-blue-600 text-white font-bold rounded-lg shadow-md hover:shadow-lg transition-all group"
+                      className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold rounded-xl shadow-[0_10px_20px_rgba(59,130,246,0.2)] hover:shadow-[0_15px_30px_rgba(59,130,246,0.3)] hover:-translate-y-0.5 transition-all group"
                     >
-                      <Sparkles size={20} className="group-hover:text-yellow-200 transition-colors" /> Tailor Application ✨
+                      <Sparkles size={20} className="group-hover:text-yellow-200 transition-colors" /> Analyze & Optimize ✨
                     </button>
                     {errorMsg && (
-                      <p className="text-red-600 text-sm mt-3 text-center font-medium bg-red-50 py-2 rounded-md lg:absolute lg:left-0 lg:right-0">
+                      <p className="text-red-600 text-[10px] mt-3 text-center font-bold uppercase tracking-tight bg-red-50 py-2 rounded-lg">
                         {errorMsg}
                       </p>
                     )}

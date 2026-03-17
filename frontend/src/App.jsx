@@ -1,16 +1,23 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Settings, Sparkles, AlertCircle, ArrowUp, Loader2, TriangleAlert, ArrowLeft } from 'lucide-react';
-
+import { Settings, Sparkles, AlertCircle, ArrowUp, Loader2, TriangleAlert, ArrowLeft, Zap, Key } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
+import GenerationOverlay from './components/GenerationOverlay';
 import ResumeInput from './components/ResumeInput';
 import JobInput from './components/JobInput';
-import SettingsModal from './components/SettingsModal';
+import SettingsDrawer from './components/SettingsModal';
 import ResultTabs from './components/ResultTabs';
 import FloatingChat from './components/FloatingChat';
 import Landing from './components/Landing';
+import WelcomeOverlay from './components/WelcomeOverlay';
+import ApiSetupModal from './components/ApiSetupModal';
+import WelcomeShield from './components/WelcomeShield';
 import './App.css';
 
-const API_BASE = 'http://cv.wealthifai.xyz/api' || 'http://localhost:8000/api';
+// Додай це на початку файлу FloatingChat.jsx
+const API_BASE = window.location.hostname === 'localhost'
+  ? 'http://localhost:8000/api'
+  : 'https://cv.wealthifai.xyz/api';
 
 const defaultPrompts = {
   resume: "You are an elite Canadian Career Strategist and ATS Optimization Expert. Your task is to tailor the provided Original Resume to perfectly match the provided Job Description. STRICT CANADIAN STANDARDS TO FOLLOW: 1. Silent Third Person: Completely eliminate personal pronouns ('I', 'me', 'my'). 2. Privacy Compliance: Strictly remove any mention of age, gender, nationality, marital status, or exact street address. 3. The Achievement Formula: Rewrite every work experience bullet point to start with a strong Action Verb, followed by the Task/Project, and ending with a Quantifiable Business Result. 4. Keyword Optimization: Naturally integrate keywords from the Job Description. CRITICAL: Do NOT hallucinate facts, companies, or degrees. Output ONLY clean Markdown formatting.",
@@ -22,9 +29,16 @@ const defaultPrompts = {
 
 function App() {
   // Global App State
-  const [apiKey, setApiKey] = useState('');
+  const [apiKey, setApiKey] = useState(localStorage.getItem('geminiApiKey') || '');
   const [prompts, setPrompts] = useState(defaultPrompts);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('resume');
+  const [isApiModalOpen, setIsApiModalOpen] = useState(false);
+  const [chatAutoTrigger, setChatAutoTrigger] = useState(false);
+  const [userSettings, setUserSettings] = useState({
+    tone: localStorage.getItem('userTone') || 'Strategic',
+    quality: localStorage.getItem('userQuality') || 'Standard'
+  });
 
   // Workspace State
   const [resumeText, setResumeText] = useState('');
@@ -37,6 +51,7 @@ function App() {
   // Generation State
   const [status, setStatus] = useState('idle'); // idle, generating, success, error
   const [errorMsg, setErrorMsg] = useState('');
+  const [loading, setLoading] = useState(false); // Added loading state
   const [results, setResults] = useState({
     resume: '',
     original_ats_score: 0,
@@ -50,10 +65,17 @@ function App() {
     interview: null
   });
   const [sessionInstructions, setSessionInstructions] = useState('');
+  const [isGenerating, setIsGenerating] = useState({
+    resume: false,
+    coverLetter: false,
+    research: false,
+    interview: false
+  });
 
   // UX State
   const [showFAB, setShowFAB] = useState(false);
   const [hasSeenChat, setHasSeenChat] = useState(localStorage.getItem('hasSeenChat') === 'true');
+  const [showTutorial, setShowTutorial] = useState(false);
   const [loadingStep, setLoadingStep] = useState(0);
   const loadingMessages = [
     "Reading your raw experience...",
@@ -67,7 +89,11 @@ function App() {
   // Load Settings and Session on Mount
   useEffect(() => {
     const savedKey = localStorage.getItem('geminiApiKey');
-    if (savedKey) setApiKey(savedKey);
+    if (savedKey) {
+      setApiKey(savedKey);
+    } else {
+      setIsApiModalOpen(true);
+    }
 
     const savedResults = localStorage.getItem('savedResults');
     const savedResume = localStorage.getItem('savedResumeText');
@@ -95,6 +121,11 @@ function App() {
 
     const savedInstructions = localStorage.getItem('sessionInstructions');
     if (savedInstructions) setSessionInstructions(savedInstructions);
+
+    const hasSeenTutorial = localStorage.getItem('hasSeenTutorial');
+    if (hasSeenTutorial !== 'true') {
+      setShowTutorial(true);
+    }
 
     // Configure axios defaults for BYOK
     if (savedKey) {
@@ -140,6 +171,11 @@ function App() {
     return () => clearInterval(interval);
   }, [currentScreen]);
 
+  const dismissTutorial = () => {
+    setShowTutorial(false);
+    localStorage.setItem('hasSeenTutorial', 'true');
+  };
+
   const handleStartOver = () => {
     if (window.confirm("Are you sure you want to clear this session and start over?")) {
       localStorage.removeItem('savedResults');
@@ -168,11 +204,17 @@ function App() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const handleSaveApiKey = (newKey) => {
+    setApiKey(newKey);
+    localStorage.setItem('geminiApiKey', newKey);
+    axios.defaults.headers.common['X-Gemini-API-Key'] = newKey;
+    setIsApiModalOpen(false);
+  };
 
   const handleGenerate = async () => {
     if (!apiKey) {
       alert("⚠️ Please enter your Gemini API Key in the Settings menu before generating.");
-      setIsSettingsOpen(true);
+      setIsSettingsOpen(true); // Open settings modal
       return;
     }
 
@@ -187,7 +229,9 @@ function App() {
     }
 
     setErrorMsg('');
+    setLoading(true);
     setCurrentScreen('loading');
+    setIsGenerating(prev => ({ ...prev, resume: true })); // Start generating
 
     const savedFacts = localStorage.getItem('careerFacts');
     const careerFacts = savedFacts ? JSON.parse(savedFacts) : [];
@@ -198,49 +242,151 @@ function App() {
       gemini_api_key: apiKey,
       auditor_prompt: prompts.auditor,
       career_facts: careerFacts,
-      session_instructions: sessionInstructions
+      session_instructions: sessionInstructions,
+      custom_prompt: `${prompts.resume}\n\nGLOBAL RULES TO FOLLOW:\n${prompts.globalRules}`
     };
 
-    // Ensure header is set even if not on mount
-    axios.defaults.headers.common['X-Gemini-API-Key'] = apiKey;
+    const playSuccessSound = () => {
+      try {
+        const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3'); // Premium chime
+        audio.volume = 0.3;
+        audio.play();
+      } catch (e) {
+        console.error("Audio playback blocked", e);
+      }
+    };
 
     try {
-      const resumeRes = await axios.post(`${API_BASE}/optimize-resume-v2`, {
-        ...basePayload,
-        custom_prompt: `${prompts.resume}\n\nGLOBAL RULES TO FOLLOW:\n${prompts.globalRules}`
+      // Correctly formatted fetch call
+      const response = await fetch(`${API_BASE}/optimize-resume-stream`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Gemini-API-Key': apiKey
+        },
+        body: JSON.stringify(basePayload)
       });
 
-      setResults({
-        resume: resumeRes.data.optimized_markdown,
-        original_ats_score: resumeRes.data.original_ats_score,
-        optimized_ats_score: resumeRes.data.optimized_ats_score,
-        changesSummary: resumeRes.data.changes_summary || [],
-        retrievedAchievements: resumeRes.data.retrieved_achievements || [],
-        bulletComparisons: resumeRes.data.bullet_comparisons || [],
-        missing_hard_skills: resumeRes.data.missing_hard_skills || [],
-        keyword_optimizations: resumeRes.data.keyword_optimizations || [],
-        recommendations: resumeRes.data.recommendations || [],
-        keywordMatrix: resumeRes.data.keyword_matrix || [],
-        detected_tone: resumeRes.data.detected_tone,
-        research: null,
-        coverLetter: null, // Reset generated assets
-        interview: null
-      });
+      if (response.status === 404) {
+        throw new Error("404: Streaming engine not found. Ensure backend is at /api/optimize-resume-stream");
+      }
 
-      setCurrentScreen('results');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ detail: 'Failed to start stream' }));
+        throw new Error(errorData.detail || 'Failed to start stream');
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let fullResume = "";
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop();
+
+        for (const line of lines) {
+          if (line.trim().startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.trim().slice(6));
+
+              if (data.type === 'metadata') {
+                setResults(prev => ({
+                  ...prev,
+                  detected_tone: data.tone,
+                  target_skills: data.target_skills,
+                  target_role: data.role,
+                  resume: "",
+                  coverLetter: null,
+                  research: null,
+                  interview: null
+                }));
+                setCurrentScreen('results');
+              }
+              // В handleGenerate, блок content:
+              else if (data.type === 'content') {
+                fullResume += data.delta;
+                setResults(prev => ({ ...prev, resume: fullResume }));
+                // Мікро-пауза для очей (опціонально, якщо хочеш повільніше)
+                // await new Promise(r => setTimeout(r, 10)); 
+              }
+              else if (data.type === 'final') {
+                setResults(prev => ({
+                  ...prev,
+                  original_ats_score: data.original_ats_score,
+                  optimized_ats_score: data.optimized_ats_score,
+                  missing_hard_skills: data.missing_hard_skills,
+                  keywordMatrix: data.keyword_matrix,
+                  initial_analysis: data.initial_analysis
+                }));
+                setIsGenerating(prev => ({ ...prev, resume: false })); // End generating
+                playSuccessSound();
+                setTimeout(() => setChatAutoTrigger(true), 1500);
+              }
+              else if (data.type === 'error') {
+                throw new Error(data.detail);
+              }
+            } catch (e) {
+              console.error("JSON Parse Error", e);
+            }
+          }
+        }
+      }
     } catch (err) {
       console.error(err);
       setCurrentScreen('workspace');
-      setErrorMsg(err.response?.data?.detail || "An error occurred during AI generation.");
+      setErrorMsg(err.message || "An error occurred.");
+      setIsGenerating(prev => ({ ...prev, resume: false })); // Reset on error
+    } finally {
+      setLoading(false);
     }
   };
 
   if (currentScreen === 'landing') {
-    return <Landing onStart={() => setCurrentScreen('workspace')} />;
+    return (
+      <AnimatePresence mode="popLayout">
+        <motion.div
+          key="landing"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+        >
+          <Landing onStart={() => {
+            if (!apiKey) {
+              setIsApiModalOpen(true);
+            } else {
+              setCurrentScreen('workspace');
+            }
+          }} />
+          {!apiKey && isApiModalOpen && (
+            <WelcomeShield
+              onComplete={(key) => {
+                setApiKey(key);
+                axios.defaults.headers.common['X-Gemini-API-Key'] = key;
+                setIsApiModalOpen(false);
+                setCurrentScreen('workspace');
+              }}
+            />
+          )}
+        </motion.div>
+      </AnimatePresence>
+    );
   }
 
   return (
     <div className="min-h-screen font-sans bg-slate-50 text-slate-900 pb-12">
+      {/* API Setup Modal */}
+      <ApiSetupModal
+        isOpen={isApiModalOpen}
+        onClose={() => setIsApiModalOpen(false)}
+        onSave={handleSaveApiKey}
+        initialKey={apiKey}
+      />
+
       {/* HEADER */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
@@ -256,7 +402,10 @@ function App() {
             </h1>
           </div>
           <button
-            onClick={() => setIsSettingsOpen(true)}
+            onClick={() => {
+              console.log("⚙️ Settings clicked");
+              setIsSettingsOpen(true);
+            }}
             className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-slate-100 text-slate-600 transition-colors"
           >
             <Settings size={18} />
@@ -268,148 +417,178 @@ function App() {
 
       {/* MAIN CONTENT AREA BY SCREEN */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
-
-        {/* === SCREEN 2: WORKSPACE === */}
-        {currentScreen === 'workspace' && (
-          <div className="pb-24 lg:pb-0">
-            {/* New Onboarding Banner */}
-            <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4 mb-6 flex items-start gap-3 animate-in fade-in slide-in-from-top-2 duration-500">
-              <Sparkles className="text-indigo-500 shrink-0 mt-0.5" size={18} />
-              <p className="text-sm text-indigo-900">
-                <strong>Welcome to Career Copilot!</strong> Paste your master resume on the left, the target job on the right, and let our AI optimize your application.
-              </p>
-            </div>
-
-            {!apiKey && (
-              <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-3 scale-95 opacity-80">
-                <AlertCircle className="text-amber-600 shrink-0 mt-0.5" size={20} />
-                <div>
-                  <h3 className="text-amber-800 font-semibold mb-1 text-sm">API Key Required</h3>
-                  <p className="text-amber-700 text-xs text-balance">Configure your Gemini key in settings to unlock AI Optimization.</p>
-                  <p className="text-[10px] text-slate-400 mt-1">Don't have one? <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">Get a free Google Gemini key</a>. Stored locally.</p>
-                </div>
+        <AnimatePresence mode="popLayout">
+          {/* === SCREEN 2: WORKSPACE === */}
+          {currentScreen === 'workspace' && (
+            <motion.div
+              key="workspace"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="pb-24 lg:pb-0"
+            >
+              <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4 mb-6 flex items-start gap-3">
+                <Sparkles className="text-indigo-500 shrink-0 mt-0.5" size={18} />
+                <p className="text-sm text-indigo-900">
+                  <strong>Welcome to Career Copilot!</strong> Paste your master resume on the left, the target job on the right, and let our AI optimize your application.
+                </p>
               </div>
-            )}
 
-            {/* 50/50 Split Screen Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 h-full items-start">
-              <div className="space-y-6">
-                <div className="flex items-center gap-2 text-slate-400 mb-2">
-                  <span className="w-6 h-6 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center text-[10px] font-bold">1</span>
-                  <span className="text-xs font-bold uppercase tracking-widest">Master Resume</span>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 h-full items-start relative">
+                <div className="space-y-6">
+                  <ResumeInput resumeText={resumeText} setResumeText={setResumeText} />
                 </div>
-                <ResumeInput resumeText={resumeText} setResumeText={setResumeText} />
-              </div>
-              <div className="space-y-6">
-                <div className="flex items-center gap-2 text-slate-400 mb-2">
-                  <span className="w-6 h-6 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center text-[10px] font-bold">2</span>
-                  <span className="text-xs font-bold uppercase tracking-widest">Target Job</span>
-                </div>
-                <JobInput jobUrl={jobUrl} setJobUrl={setJobUrl} jobText={jobText} setJobText={setJobText} />
-
-                {/* Fixed Mobile Button Container */}
-                <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/95 backdrop-blur-md border-t border-slate-200 z-50 lg:static lg:bg-transparent lg:border-none lg:p-0 lg:mt-6">
-                  <div className="max-w-7xl mx-auto lg:max-w-none">
+                <div className="space-y-6">
+                  <JobInput jobUrl={jobUrl} setJobUrl={setJobUrl} jobText={jobText} setJobText={setJobText} />
+                  <div className="mt-6">
                     <button
                       onClick={handleGenerate}
-                      className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold rounded-xl shadow-[0_10px_20px_rgba(59,130,246,0.2)] hover:shadow-[0_15px_30px_rgba(59,130,246,0.3)] hover:-translate-y-0.5 transition-all group"
+                      disabled={loading || !resumeText.trim() || !jobText.trim()}
+                      className="w-full bg-slate-900 hover:bg-slate-800 text-white px-8 py-5 rounded-[2rem] font-black text-lg shadow-[0_20px_40px_rgba(15,23,42,0.2)] transition-all hover:-translate-y-1 active:scale-95 disabled:opacity-50 disabled:hover:translate-y-0 flex items-center justify-center gap-3 group"
                     >
-                      <Sparkles size={20} className="group-hover:text-yellow-200 transition-colors" /> Analyze & Optimize ✨
+                      {loading ? (
+                        <div className="w-6 h-6 border-4 border-white/20 border-t-white rounded-full animate-spin" />
+                      ) : (
+                        <>
+                          <Zap className="text-amber-400 group-hover:scale-110 transition-transform" fill="currentColor" />
+                          Generate Optimized Resume
+                        </>
+                      )}
                     </button>
                     {errorMsg && (
-                      <p className="text-red-600 text-[10px] mt-3 text-center font-bold uppercase tracking-tight bg-red-50 py-2 rounded-lg">
-                        {errorMsg}
-                      </p>
+                      <motion.div
+                        initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        className="mt-6 p-4 bg-white/80 backdrop-blur-xl border border-red-100 rounded-2xl shadow-[0_10px_30px_rgba(220,38,38,0.1)] flex items-center gap-4"
+                      >
+                        <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center shrink-0">
+                          <AlertCircle className="text-red-500" size={20} />
+                        </div>
+                        <div>
+                          <p className="text-[11px] font-black text-red-500 uppercase tracking-widest mb-0.5">System Error</p>
+                          <p className="text-[13px] text-slate-600 font-medium leading-tight">{errorMsg}</p>
+                        </div>
+                      </motion.div>
                     )}
                   </div>
                 </div>
               </div>
-            </div>
-          </div>
-        )}
+            </motion.div>
+          )}
 
-        {/* === SCREEN 3: LOADING === */}
-        {currentScreen === 'loading' && (
-          <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-8 animate-in fade-in zoom-in-95 duration-500">
-            <div className="relative">
-              <Loader2 className="animate-spin text-primary" size={64} />
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-8 h-8 bg-blue-50 rounded-full animate-ping opacity-20"></div>
+          {/* === SCREEN 3: LOADING === */}
+          {currentScreen === 'loading' && (
+            <motion.div
+              key="loading"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 1.05 }}
+              className="flex flex-col items-center justify-center min-h-[50vh] space-y-8"
+            >
+              <div className="relative">
+                <Loader2 className="animate-spin text-primary" size={64} />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-8 h-8 bg-blue-50 rounded-full animate-ping opacity-20"></div>
+                </div>
               </div>
-            </div>
-            <div className="text-center max-w-md h-16">
-              <h2 className="text-xl font-bold text-slate-800 mb-2 transition-all duration-500 opacity-100 transform translate-y-0">
-                {loadingMessages[loadingStep]}
-              </h2>
-              <p className="text-sm text-slate-500 animate-pulse">Running AI Audit Engine...</p>
-            </div>
-          </div>
-        )}
+              <div className="text-center max-w-md h-16">
+                <h2 className="text-xl font-bold text-slate-800 mb-2">
+                  {loadingMessages[loadingStep]}
+                </h2>
+                <p className="text-sm text-slate-500 animate-pulse">Running AI Audit Engine...</p>
+              </div>
+            </motion.div>
+          )}
 
-        {/* === SCREEN 4: RESULTS === */}
-        {currentScreen === 'results' && (
-          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => setCurrentScreen('workspace')}
-                  className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900 font-semibold transition-colors"
-                >
-                  <ArrowLeft size={16} /> New Application
-                </button>
+          {/* === SCREEN 4: RESULTS === */}
+          {currentScreen === 'results' && (
+            <motion.div
+              key="results"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="space-y-6 pr-12"
+            >
+              <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setCurrentScreen('workspace')}
+                    className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900 font-semibold transition-colors"
+                  >
+                    <ArrowLeft size={16} /> New Application
+                  </button>
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={handleStartOver}
+                    className="px-4 py-2 bg-red-50 text-red-600 font-bold text-xs uppercase tracking-wider rounded-lg hover:bg-red-100 transition-colors border border-red-100"
+                  >
+                    Start Over
+                  </button>
+                </div>
               </div>
-              <div className="flex gap-3">
-                <button
-                  onClick={handleStartOver}
-                  className="px-4 py-2 bg-red-50 text-red-600 font-bold text-xs uppercase tracking-wider rounded-lg hover:bg-red-100 transition-colors border border-red-100"
-                >
-                  Start Over
-                </button>
-              </div>
-            </div>
 
-            <div className="min-h-[600px]">
-              <ResultTabs
-                results={results}
-                setResults={setResults}
-                resumeText={resumeText}
-                jobText={jobText}
-                apiKey={apiKey}
-                prompts={prompts}
-              />
-            </div>
-          </div>
-        )}
+              <div className="min-h-[600px]">
+                <ResultTabs
+                  results={results}
+                  setResults={setResults}
+                  resumeText={resumeText}
+                  jobText={jobText}
+                  apiKey={apiKey}
+                  prompts={prompts}
+                  isGenerating={isGenerating}
+                  setIsGenerating={setIsGenerating}
+                />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </main>
 
       {/* MODALS & FAB */}
+      <AnimatePresence mode="popLayout">
+        {isSettingsOpen && (
+          <SettingsDrawer
+            isOpen={isSettingsOpen}
+            onClose={() => setIsSettingsOpen(false)}
+            apiKey={apiKey}
+            setApiKey={setApiKey}
+            settings={userSettings}
+            onUpdateSettings={(newSettings) => {
+              const updated = { ...userSettings, ...newSettings };
+              setUserSettings(updated);
+              if (newSettings.tone) localStorage.setItem('userTone', newSettings.tone);
+              if (newSettings.quality) localStorage.setItem('userQuality', newSettings.quality);
+            }}
+          />
+        )}
+      </AnimatePresence>
+
       {showFAB && (
         <button
           onClick={scrollToTop}
           className="fixed bottom-24 right-6 p-3 bg-slate-800 text-white rounded-full shadow-lg hover:bg-slate-700 hover:-translate-y-1 transition-all z-50 flex items-center justify-center"
-          title="Scroll to top"
         >
           <ArrowUp size={24} />
         </button>
       )}
 
-      <SettingsModal
-        isOpen={isSettingsOpen}
-        onClose={() => setIsSettingsOpen(false)}
-        apiKey={apiKey}
-        setApiKey={setApiKey}
-        prompts={prompts}
-        setPrompts={setPrompts}
-      />
-
-      {/* Floating AI Assistant - Only on results screen */}
       {currentScreen === 'results' && (
         <FloatingChat
           onRegenerate={handleGenerate}
           hasSeenChat={hasSeenChat}
           setHasSeenChat={setHasSeenChat}
+          autoTrigger={chatAutoTrigger}
         />
       )}
+
+      <AnimatePresence mode="popLayout">
+        {showTutorial && (
+          <motion.div key="tutorial" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <WelcomeOverlay onDismiss={dismissTutorial} />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

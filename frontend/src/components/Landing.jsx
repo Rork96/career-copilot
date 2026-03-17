@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { FileText, Target, Download, Shield, Sparkles, Github, ArrowRight, Check, MessageSquare } from 'lucide-react';
+import AIChatShowcase from './AIChatShowcase';
 
 export default function Landing({ onStart }) {
   const fadeUpVariants = {
@@ -14,7 +15,7 @@ export default function Landing({ onStart }) {
 
   return (
     <div className="min-h-screen bg-white text-slate-900 font-sans tracking-tight overflow-hidden selection:bg-indigo-100 selection:text-indigo-900">
-      
+
       {/* Decorative Background Elements */}
       <div className="absolute top-0 inset-x-0 h-[40rem] bg-gradient-to-b from-indigo-50/30 via-transparent to-transparent -z-10 pointer-events-none" />
       <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-blue-100/30 blur-[120px] -z-10" />
@@ -24,7 +25,7 @@ export default function Landing({ onStart }) {
       <nav className="max-w-7xl mx-auto px-6 py-6 flex items-center justify-between relative z-10">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-2xl bg-slate-900 text-white flex items-center justify-center shadow-sm">
-             <Sparkles size={20} />
+            <Sparkles size={20} />
           </div>
           <span className="font-bold text-xl tracking-tight text-slate-900">Career Copilot</span>
         </div>
@@ -44,28 +45,28 @@ export default function Landing({ onStart }) {
             ATS Optimization Engine v2.0
           </motion.div>
 
-          <motion.h1 
+          <motion.h1
             custom={2}
             initial="hidden"
             animate="visible"
             variants={fadeUpVariants}
             className="text-5xl sm:text-6xl md:text-7xl font-bold tracking-tighter text-slate-900 mb-8 leading-[1.05] max-w-3xl"
           >
-            Stop Getting Ghosted by ATS. <br className="hidden md:block" />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">Tailor Your Resume in Seconds.</span>
+            Tailor your resume for any job in seconds. <br className="hidden md:block" />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">100% Private. Your data, zero tracking.</span>
           </motion.h1>
 
-          <motion.p 
+          <motion.p
             custom={3}
             initial="hidden"
             animate="visible"
             variants={fadeUpVariants}
             className="text-lg md:text-xl text-slate-500 mb-12 max-w-2xl leading-relaxed text-balance"
           >
-            Upload your base resume, paste the job description, and let our AI generate a perfectly targeted, ATS-friendly PDF. <strong className="text-slate-800 font-semibold">No subscriptions. No BS.</strong>
+            Get past the ATS filters with an AI-powered document that speaks to recruiters. <strong className="text-slate-800 font-semibold">No subscriptions, just results.</strong>
           </motion.p>
 
-          <motion.div 
+          <motion.div
             custom={4}
             initial="hidden"
             animate="visible"
@@ -76,12 +77,12 @@ export default function Landing({ onStart }) {
               onClick={onStart}
               className="w-full sm:w-auto px-8 py-4 bg-slate-900 text-white rounded-2xl font-semibold text-lg shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:bg-indigo-600 hover:-translate-y-0.5 hover:shadow-[0_8px_40px_rgb(79,70,229,0.2)] transition-all flex items-center justify-center gap-3 group"
             >
-              Try it for Free 
+              Try it for Free
               <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
             </button>
-            <a 
-              href="https://github.com/Rork96/career-copilot" 
-              target="_blank" 
+            <a
+              href="https://github.com/Rork96/career-copilot"
+              target="_blank"
               rel="noopener noreferrer"
               className="w-full sm:w-auto px-8 py-4 bg-white text-slate-900 rounded-2xl font-semibold text-lg border border-slate-200 shadow-sm hover:bg-slate-50 transition-all flex items-center justify-center gap-3"
             >
@@ -90,7 +91,7 @@ export default function Landing({ onStart }) {
             </a>
           </motion.div>
 
-          <motion.div 
+          <motion.div
             custom={5}
             initial="hidden"
             animate="visible"
@@ -103,7 +104,7 @@ export default function Landing({ onStart }) {
         </section>
 
         {/* 2. MOCKUP INTERFACE */}
-        <motion.section 
+        <motion.section
           custom={6}
           initial="hidden"
           animate="visible"
@@ -122,7 +123,7 @@ export default function Landing({ onStart }) {
                 </div>
                 <div className="mx-auto text-xs font-medium text-slate-400 font-mono tracking-tight">career-copilot — AI Matrix</div>
               </div>
-              
+
               <div className="p-6 md:p-10 bg-[#FAFAFA]">
                 <div className="grid md:grid-cols-2 gap-8 items-stretch">
                   {/* Left Side: Job Requirements */}
@@ -134,7 +135,7 @@ export default function Landing({ onStart }) {
                       </div>
                       <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">Job Requirements</h3>
                     </div>
-                    
+
                     <div className="space-y-6 flex-1">
                       <div className="h-2 w-1/4 bg-slate-200 rounded-full mb-2"></div>
                       <div className="space-y-4">
@@ -159,7 +160,7 @@ export default function Landing({ onStart }) {
                     <div className="absolute top-0 right-0 -mt-3 -mr-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-[10px] font-bold px-4 py-1.5 rounded-full shadow-md uppercase tracking-widest flex items-center gap-1.5 ring-4 ring-white">
                       <Sparkles size={12} className="text-blue-200" /> Optimized Output
                     </div>
-                    
+
                     <div className="flex items-center gap-3 mb-6">
                       <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center border border-indigo-100 text-indigo-500">
                         <Check size={20} />
@@ -205,7 +206,7 @@ export default function Landing({ onStart }) {
             {/* Background Effects */}
             <div className="absolute top-0 right-0 w-[40rem] h-[40rem] bg-indigo-500/10 blur-[100px] rounded-full pointer-events-none" />
             <div className="absolute bottom-0 left-0 w-[30rem] h-[30rem] bg-blue-500/10 blur-[100px] rounded-full pointer-events-none" />
-            
+
             <div className="flex-1 relative z-10">
               <motion.div
                 initial="hidden"
@@ -217,7 +218,7 @@ export default function Landing({ onStart }) {
               >
                 <MessageSquare size={14} /> AI Chat Assistant
               </motion.div>
-              <motion.h2 
+              <motion.h2
                 initial="hidden"
                 whileInView="visible"
                 viewport={{ once: true, margin: "-100px" }}
@@ -225,10 +226,10 @@ export default function Landing({ onStart }) {
                 custom={1}
                 className="text-4xl md:text-5xl font-bold tracking-tight text-white mb-6 leading-[1.1]"
               >
-                Just Talk. <br className="hidden lg:block"/>
+                Just Talk. <br className="hidden lg:block" />
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400">We'll Do the Formatting.</span>
               </motion.h2>
-              <motion.p 
+              <motion.p
                 initial="hidden"
                 whileInView="visible"
                 viewport={{ once: true, margin: "-100px" }}
@@ -240,7 +241,7 @@ export default function Landing({ onStart }) {
               </motion.p>
             </div>
 
-            <motion.div 
+            <motion.div
               initial="hidden"
               whileInView="visible"
               viewport={{ once: true, margin: "-50px" }}
@@ -252,7 +253,7 @@ export default function Landing({ onStart }) {
             >
               {/* Chat Interface Mockup */}
               <div className="bg-slate-800/80 backdrop-blur-xl border border-slate-700/50 rounded-3xl p-6 shadow-2xl flex flex-col gap-6 relative">
-                
+
                 {/* User Message Bubble */}
                 <div className="flex justify-end relative">
                   <div className="bg-slate-700 text-slate-200 p-4 rounded-2xl rounded-tr-sm max-w-[85%] text-sm leading-relaxed border border-slate-600/50 shadow-sm relative z-10">
@@ -263,7 +264,7 @@ export default function Landing({ onStart }) {
                 {/* AI Conversion Indicator */}
                 <div className="flex justify-center -my-2 relative z-20">
                   <div className="bg-indigo-600 p-2 rounded-full shadow-lg border border-indigo-400 animate-pulse text-white">
-                     <ArrowRight size={16} className="rotate-90 md:rotate-0" />
+                    <ArrowRight size={16} className="rotate-90 md:rotate-0" />
                   </div>
                 </div>
 
@@ -278,7 +279,7 @@ export default function Landing({ onStart }) {
                     </p>
                   </div>
                 </div>
-                
+
               </div>
             </motion.div>
           </div>
@@ -290,7 +291,7 @@ export default function Landing({ onStart }) {
             <h2 className="text-4xl font-bold tracking-tight text-slate-900 mb-5">Simple, transparent process.</h2>
             <p className="text-xl text-slate-500 max-w-2xl mx-auto font-medium">No complex onboarding. Just bring your resume and the job you want.</p>
           </div>
-          
+
           <div className="grid md:grid-cols-3 gap-8 sm:gap-12 relative max-w-5xl mx-auto">
             {/* Connecting Line */}
             <div className="hidden md:block absolute top-[48px] left-[15%] right-[15%] h-[2px] bg-gradient-to-r from-transparent via-slate-200 to-transparent -z-10" />
@@ -315,7 +316,7 @@ export default function Landing({ onStart }) {
                 delay: 0.2
               }
             ].map((step, i) => (
-              <motion.div 
+              <motion.div
                 key={i}
                 initial="hidden"
                 whileInView="visible"
@@ -338,6 +339,7 @@ export default function Landing({ onStart }) {
             ))}
           </div>
         </section>
+        <AIChatShowcase />
 
         {/* 4. FAQ */}
         <section className="mt-40 max-w-3xl mx-auto relative z-10">
@@ -360,7 +362,7 @@ export default function Landing({ onStart }) {
                 a: "Processed locally on our secure server. No databases, no storage."
               }
             ].map((faq, i) => (
-              <motion.div 
+              <motion.div
                 key={i}
                 initial="hidden"
                 whileInView="visible"
@@ -382,12 +384,12 @@ export default function Landing({ onStart }) {
         </section>
 
       </main>
-      
+
       {/* Footer */}
       <footer className="border-t border-slate-100 bg-[#F9FAFB] py-16 text-center text-slate-500 px-6 relative z-10">
         <div className="flex items-center justify-center gap-2 mb-6">
           <div className="w-8 h-8 rounded-xl bg-slate-200 text-slate-600 flex items-center justify-center">
-             <Sparkles size={16} />
+            <Sparkles size={16} />
           </div>
           <span className="font-bold text-lg text-slate-700 tracking-tight">Career Copilot</span>
         </div>

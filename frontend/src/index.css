@@ -48,6 +48,31 @@
   @apply italic;
 }
 
+/* Custom Ultra-Thin Scrollbar (iOS Style) */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.25);
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.5);
+}
+
+/* Provide a specific class to completely hide scrollbar where needed */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
 @media print {
 
   /* 1. Вбиваємо браузерні колонтитули (localhost, дата, сторінки) */

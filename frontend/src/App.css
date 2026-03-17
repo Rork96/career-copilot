@@ -1,6 +1,7 @@
 /* Basic reset and typography */
 :root {
-  --primary-color: #2481cc; /* Telegram blue */
+  --primary-color: #2481cc;
+  /* Telegram blue */
   --bg-color: #f5f5f5;
   --card-bg: #ffffff;
   --text-main: #222222;
@@ -32,7 +33,7 @@ body {
 .app-header {
   background-color: var(--card-bg);
   padding: 1rem;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -74,7 +75,7 @@ nav button.active {
   background: var(--card-bg);
   border-radius: var(--border-radius);
   padding: 1.5rem;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   margin-bottom: 1.5rem;
 }
 
@@ -107,7 +108,8 @@ textarea {
   font-size: 1rem;
 }
 
-input:focus, textarea:focus {
+input:focus,
+textarea:focus {
   outline: none;
   border-color: var(--primary-color);
   box-shadow: 0 0 0 2px rgba(36, 129, 204, 0.2);
@@ -188,14 +190,42 @@ textarea {
   font-size: 0.95rem;
   line-height: 1.6;
 }
-.markdown-body h1, .markdown-body h2, .markdown-body h3 {
+
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3 {
   margin-top: 1.5em;
   margin-bottom: 0.5em;
 }
+
 .markdown-body p {
   margin-bottom: 1em;
 }
-.markdown-body ul, .markdown-body ol {
+
+.markdown-body ul,
+.markdown-body ol {
   margin-bottom: 1em;
   padding-left: 20px;
+}
+
+.streaming-text::after {
+  content: '▋';
+  display: inline-block;
+  margin-left: 3px;
+  color: #3b82f6;
+  animation: pulse 0.8s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0;
+  }
+
+  100% {
+    opacity: 1;
+  }
 }

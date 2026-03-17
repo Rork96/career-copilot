@@ -322,8 +322,11 @@ function App() {
                 // await new Promise(r => setTimeout(r, 10)); 
               }
               else if (data.type === 'final') {
+                // APPLE FIX: Глобально зрізаємо ```markdown оболонку перед збереженням
                 setResults(prev => ({
                   ...prev,
+                  // Регулярка видаляє ```markdown на початку і ``` в кінці
+                  resume: prev.resume.replace(/```(markdown)?\n?/gi, '').replace(/```\n?$/gi, '').trim(),
                   original_ats_score: data.original_ats_score,
                   optimized_ats_score: data.optimized_ats_score,
                   missing_hard_skills: data.missing_hard_skills,
@@ -495,22 +498,30 @@ function App() {
           {currentScreen === 'loading' && (
             <motion.div
               key="loading"
-              initial={{ opacity: 0, scale: 0.95 }}
+              initial={{ opacity: 0, scale: 0.98 }}
               animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 1.05 }}
-              className="flex flex-col items-center justify-center min-h-[50vh] space-y-8"
+              exit={{ opacity: 0, scale: 1.02 }}
+              className="flex flex-col items-center justify-center min-h-[50vh] space-y-10"
             >
               <div className="relative">
-                <Loader2 className="animate-spin text-primary" size={64} />
+                <Loader2 className="animate-spin text-indigo-600" size={56} strokeWidth={2.5} />
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-8 h-8 bg-blue-50 rounded-full animate-ping opacity-20"></div>
+                  <div className="w-10 h-10 bg-indigo-500 rounded-full animate-ping opacity-20"></div>
                 </div>
               </div>
-              <div className="text-center max-w-md h-16">
-                <h2 className="text-xl font-bold text-slate-800 mb-2">
-                  {loadingMessages[loadingStep]}
-                </h2>
-                <p className="text-sm text-slate-500 animate-pulse">Running AI Audit Engine...</p>
+              <div className="text-center max-w-md h-16 relative">
+                <AnimatePresence mode="wait">
+                  <motion.h2
+                    key={loadingStep} // Це змусить текст плавно мінятися!
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -5 }}
+                    transition={{ duration: 0.3 }}
+                    className="text-[17px] font-black tracking-tight text-slate-800 mb-2 absolute w-full left-0 right-0"
+                  >
+                    {loadingMessages[loadingStep]}
+                  </motion.h2>
+                </AnimatePresence>
               </div>
             </motion.div>
           )}

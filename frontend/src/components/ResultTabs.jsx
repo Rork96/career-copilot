@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import PropTypes from 'prop-types';
 import axios from 'axios';
 import { motion } from 'framer-motion';
+import { Loader2, Sparkles } from 'lucide-react';
 
 import OptimizationInsights from './OptimizationInsights';
 import DocumentViewer from './DocumentViewer';
@@ -20,10 +21,47 @@ export default function ResultTabs({ results, setResults, resumeText, jobText, a
     const [addedSkills, setAddedSkills] = useState({});
     const [matrixPage, setMatrixPage] = useState(0);
 
-    // Замість return null:
+    // 🍏 APPLE MAGIC: Преміальний екран очікування замість сірого тексту
     if (!results.resume && !isGenerating.resume) {
-        return <div className="p-20 text-center text-slate-400">Preparing your workspace...</div>;
+        return (
+            <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="flex flex-col items-center justify-center h-[60vh] text-center space-y-6"
+            >
+                <div className="relative flex items-center justify-center w-20 h-20 bg-white rounded-3xl shadow-[0_10px_40px_rgba(0,0,0,0.08)] border border-slate-100">
+                    <Loader2 className="animate-spin text-indigo-600" size={32} strokeWidth={2.5} />
+                    <Sparkles className="absolute -top-2 -right-2 text-amber-400 animate-pulse" size={20} />
+                </div>
+                <div>
+                    <h3 className="text-lg font-black text-slate-800 tracking-tight">Setting up your workspace</h3>
+                    <p className="text-sm font-medium text-slate-500 mt-1">Preparing AI models and optimizing layout...</p>
+                </div>
+            </motion.div>
+        );
     }
+
+    // 🛡️ СЕНЬЙОРНА ЛОГІКА: Дворівнева очистка тексту
+    // Рівень 1: Очистка для Word та PDF (Видаляємо тільки технічні блоки ```markdown)
+    const sanitizeForDocument = (text) => {
+        if (!text) return '';
+        return text
+            .replace(/^```(markdown)?\n?/gi, '') // Видаляємо з початку
+            .replace(/```\n?$/gi, '')            // Видаляємо з кінця
+            .trim();
+    };
+
+    // Рівень 2: Тотальна очистка для TXT та Copy (Видаляємо ВСЕ форматування: зірочки, решітки)
+    const sanitizeForPlainText = (text) => {
+        if (!text) return '';
+        let clean = sanitizeForDocument(text);
+        return clean
+            .replace(/^#+\s+/gm, '')             // Видаляємо заголовки (#)
+            .replace(/(\*\*|__)(.*?)\1/g, '$2')  // Видаляємо жирний шрифт
+            .replace(/(\*|_)(.*?)\1/g, '$2')     // Видаляємо курсив
+            .replace(/^\s*\*\s+/gm, '- ')        // Нормалізуємо буліти
+            .trim();
+    };
 
     const handleAddToKnowledgeBase = (skill) => {
         const savedFacts = localStorage.getItem('careerFacts');
@@ -45,22 +83,13 @@ export default function ResultTabs({ results, setResults, resumeText, jobText, a
         if (activeTab === 'research') textToCopy = results.research;
 
         try {
-            await navigator.clipboard.writeText(stripMarkdown(textToCopy));
+            // Використовуємо Рівень 2 (Plain Text)
+            await navigator.clipboard.writeText(sanitizeForPlainText(textToCopy));
             setCopied(true);
             setTimeout(() => setCopied(false), 2000);
         } catch (err) {
             console.error('Failed to copy text: ', err);
         }
-    };
-
-    const stripMarkdown = (markdownString) => {
-        if (!markdownString) return '';
-        return markdownString
-            .replace(/^#+\s+/gm, '')
-            .replace(/(\*\*|__)(.*?)\1/g, '$2')
-            .replace(/(\*|_)(.*?)\1/g, '$2')
-            .replace(/^\s*\*\s+/gm, '- ')
-            .trim();
     };
 
     const handleDownload = () => {
@@ -80,7 +109,8 @@ export default function ResultTabs({ results, setResults, resumeText, jobText, a
             filename = 'Company_Research.txt';
         }
 
-        const cleanText = stripMarkdown(textToDownload);
+        // Використовуємо Рівень 2 (Plain Text)
+        const cleanText = sanitizeForPlainText(textToDownload);
         const blob = new Blob([cleanText], { type: 'text/plain;charset=utf-8' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
@@ -96,8 +126,9 @@ export default function ResultTabs({ results, setResults, resumeText, jobText, a
         try {
             const filename = `${(results.candidate_name || 'Candidate').replace(/\s+/g, '_')}_Resume.docx`;
 
+            // Використовуємо Рівень 1 (Clean Markdown)
             const response = await axios.post(`${API_BASE}/export-docx`, {
-                markdown_text: results.resume
+                markdown_text: sanitizeForDocument(results.resume)
             }, {
                 responseType: 'blob'
             });
@@ -118,7 +149,10 @@ export default function ResultTabs({ results, setResults, resumeText, jobText, a
 
     const handleDownloadPDF = async () => {
         try {
-            const markdownLines = results.resume.split('\n');
+            // Використовуємо Рівень 1 (Clean Markdown)
+            const cleanMarkdown = sanitizeForDocument(results.resume);
+
+            const markdownLines = cleanMarkdown.split('\n');
             const firstLine = markdownLines.find(line => line.trim() !== '') || '';
             const nameFromMarkdown = firstLine.replace(/[#*]/g, '').trim();
 
@@ -129,7 +163,7 @@ export default function ResultTabs({ results, setResults, resumeText, jobText, a
             const filename = `${safeName.replace(/\s+/g, '_')}_Resume`;
 
             const response = await axios.post(`${API_BASE}/export-pdf`, {
-                markdown_text: results.resume,
+                markdown_text: cleanMarkdown,
                 filename: filename
             }, {
                 responseType: 'blob'
@@ -203,7 +237,7 @@ export default function ResultTabs({ results, setResults, resumeText, jobText, a
         <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: "easeOut" }}
+            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }} // Apple Spring
             className="flex flex-col lg:flex-row gap-8 lg:h-[calc(100vh-120px)] overflow-hidden bg-slate-50/50 p-2 rounded-[2.5rem] print:p-0 print:bg-white pb-24 lg:pb-2 lg:pr-24"
         >
             <OptimizationInsights
@@ -214,6 +248,7 @@ export default function ResultTabs({ results, setResults, resumeText, jobText, a
                 setMatrixPage={setMatrixPage}
                 handleAddToKnowledgeBase={handleAddToKnowledgeBase}
                 addedSkills={addedSkills}
+                isGenerating={isGenerating.resume}
             />
 
             <DocumentViewer

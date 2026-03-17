@@ -20,6 +20,21 @@ export default function FloatingChat({ onRegenerate, hasSeenChat, setHasSeenChat
     console.log("💬 Chat Assistant initialized");
   }, []);
 
+  // МАГІЧНЕ АВТОЗАПОВНЕННЯ (Додай це всередині компонента FloatingChat)
+  useEffect(() => {
+    const handlePrefill = (e) => {
+      setInput(e.detail);
+      setIsOpen(true);
+      setActiveTab('chat');
+      // Фокусуємо інпут через невелику затримку
+      setTimeout(() => {
+        document.getElementById('chat-input-field')?.focus();
+      }, 300);
+    };
+    window.addEventListener('prefill-chat', handlePrefill);
+    return () => window.removeEventListener('prefill-chat', handlePrefill);
+  }, []);
+
   // Handle Auto-Trigger
   // Handle Auto-Trigger від Сеньйора
   useEffect(() => {
@@ -147,6 +162,7 @@ export default function FloatingChat({ onRegenerate, hasSeenChat, setHasSeenChat
         {!isOpen && (
           <motion.button
             key="fab"
+            id="chat-trigger-btn"
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
@@ -176,7 +192,7 @@ export default function FloatingChat({ onRegenerate, hasSeenChat, setHasSeenChat
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
             onClick={() => setIsOpen(false)}
-            className="fixed inset-0 bg-slate-900/10 backdrop-blur-sm z-40"
+            className="fixed inset-0 bg-indigo-600/10 backdrop-blur-sm z-40"
           />
         )}
       </AnimatePresence>
@@ -247,7 +263,7 @@ export default function FloatingChat({ onRegenerate, hasSeenChat, setHasSeenChat
                             </div>
                             <div className="space-y-3">
                               <div className={`p-4 text-[14px] leading-relaxed shadow-sm border border-white/20 ${msg.role === 'user'
-                                ? 'bg-slate-900 text-white rounded-3xl rounded-br-sm'
+                                ? 'bg-indigo-600 text-white rounded-3xl rounded-br-sm'
                                 : 'bg-white/70 backdrop-blur-md text-slate-800 rounded-3xl rounded-bl-sm font-medium'
                                 }`}>
                                 {msg.text}
@@ -291,26 +307,54 @@ export default function FloatingChat({ onRegenerate, hasSeenChat, setHasSeenChat
                     <div ref={chatEndRef} />
                   </div>
 
-                  {/* Input Area */}
-                  <div className="p-4 bg-white/60 backdrop-blur-xl border-t border-slate-200/50">
-                    <form onSubmit={handleSend} className="flex gap-2 relative">
-                      <input
-                        type="text"
+                  {/* Input Area з Розумними Підказками */}
+                  <div className="p-4 bg-white/80 backdrop-blur-xl border-t border-slate-200/50 flex flex-col gap-2">
+
+                    {/* Smart Quick Actions */}
+                    {messages.length < 4 && (
+                      <div className="flex gap-2 overflow-x-auto hide-scrollbar pb-1">
+                        {/* Якщо фактів ще мало, фокусуємось на додаванні досвіду */}
+                        {careerFacts.length < 2 ? (
+                          <>
+                            <button onClick={() => setInput("How can I improve my ATS score?")} className="shrink-0 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 text-[11px] font-bold rounded-full transition-colors border border-indigo-100/50">How to improve score?</button>
+                            <button onClick={() => setInput("What key skills am I missing?")} className="shrink-0 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 text-[11px] font-bold rounded-full transition-colors border border-indigo-100/50">What skills am I missing?</button>
+                          </>
+                        ) : (
+                          /* Якщо факти вже є, фокусуємось на поліруванні */
+                          <>
+                            <button onClick={() => setInput("Make my recent role sound more strategic")} className="shrink-0 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 text-[11px] font-bold rounded-full transition-colors border border-indigo-100/50">Make it strategic</button>
+                            <button onClick={() => setInput("Shorten the bullet points")} className="shrink-0 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 text-[11px] font-bold rounded-full transition-colors border border-indigo-100/50">Shorten bullets</button>
+                          </>
+                        )}
+                      </div>
+                    )}
+
+                    <form onSubmit={handleSend} className="flex gap-2 relative items-end">
+                      <textarea
+                        id="chat-input-field"
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
-                        placeholder="Message Interviewer..."
-                        className="flex-1 px-5 py-3.5 pr-14 text-[15px] border border-slate-200/60 rounded-full focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all placeholder:text-slate-400 bg-white/80 shadow-inner"
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            handleSend(e);
+                          }
+                        }}
+                        placeholder="Type your experience..."
+                        /* APPLE FIX: resize-none, scrollbar-hide, min-height та pr-14(Padding Right) */
+                        className="flex-1 px-5 py-3 pr-14 text-[14px] border border-slate-200/80 rounded-2xl focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 outline-none transition-all placeholder:text-slate-400 bg-white shadow-inner resize-none min-h-[48px] max-h-[120px] overflow-y-auto hide-scrollbar leading-relaxed"
+                        rows={1}
                       />
                       <button
                         type="submit"
                         disabled={!input.trim() || isThinking}
-                        className="absolute right-1.5 top-1.5 bottom-1.5 aspect-square bg-indigo-600 text-white rounded-full hover:bg-indigo-500 transition-all disabled:opacity-50 flex items-center justify-center shadow-md disabled:hover:bg-indigo-600"
+                        /* Кнопка тепер абсолютно позиціонована внизу справа */
+                        className="absolute right-2 bottom-2 w-8 h-8 bg-indigo-600 text-white rounded-xl hover:bg-indigo-500 transition-all disabled:opacity-50 flex items-center justify-center shadow-sm disabled:bg-indigo-400"
                       >
-                        <Send size={16} className="ml-0.5" />
+                        <Send size={15} className="ml-0.5" />
                       </button>
                     </form>
-                  </div>
-                </div>
+                  </div>                </div>
               ) : (
                 <div className="flex-1 flex flex-col p-6 overflow-hidden">
                   <div className="mb-4 flex items-center gap-3">
@@ -360,7 +404,7 @@ export default function FloatingChat({ onRegenerate, hasSeenChat, setHasSeenChat
                       <button
                         onClick={editingIdx !== null ? saveEdit : addFact}
                         disabled={!newFact.trim()}
-                        className="flex items-center justify-center gap-2 px-6 py-2.5 bg-slate-900 text-white text-xs font-bold uppercase tracking-widest rounded-full hover:bg-slate-800 transition-all disabled:opacity-50 shadow-md transform hover:-translate-y-0.5"
+                        className="flex items-center justify-center gap-2 px-6 py-2.5 bg-indigo-600 text-white text-xs font-bold uppercase tracking-widest rounded-full hover:bg-slate-800 transition-all disabled:opacity-50 shadow-md transform hover:-translate-y-0.5"
                       >
                         {editingIdx !== null ? <><Check size={14} /> Update</> : <><Plus size={14} /> Add Data</>}
                       </button>

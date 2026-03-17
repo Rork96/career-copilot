@@ -2,18 +2,15 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import ReactMarkdown from 'react-markdown';
 import { motion, AnimatePresence } from 'framer-motion';
-// APPLE FIX: Додано ArrowRight сюди 👇
 import { Download, FileText, Check, Copy, Edit3, Loader2, Search, BrainCircuit, Building, ChevronDown, Sparkles, PenTool, Maximize2, Minimize2, ArrowRight } from 'lucide-react';
 import ResumePDFTemplate from './ResumePDFTemplate';
 
-// Функція для очистки від ```markdown сміття
 const cleanMarkdownArtifacts = (text) => {
     if (!text) return "";
     return text.replace(/```(markdown)?/gi, '').trim();
 };
 
 const StreamingMarkdown = ({ content, isStreaming, format = "standard" }) => {
-    // Чистимо артефакти LLM та зайві пробіли
     const cleanContent = cleanMarkdownArtifacts(content).replace(/^[ \t]+/gm, '');
 
     const resumeComponents = {
@@ -171,16 +168,14 @@ export default function DocumentViewer({
                                             transition={{ duration: 0.2, ease: "easeOut" }}
                                             className="absolute right-0 mt-3 w-48 bg-white/95 backdrop-blur-xl border border-slate-100 rounded-[1.2rem] shadow-[0_20px_50px_rgba(0,0,0,0.1)] z-50 p-1.5 overflow-hidden"
                                         >
-                                            {activeTab === 'resume' && (
-                                                <>
-                                                    <button onClick={() => { handleDownloadPDF(); setIsExportOpen(false); }} className="w-full text-left px-3 py-2.5 text-[12px] font-bold text-slate-700 hover:bg-slate-50 hover:text-indigo-600 rounded-xl flex items-center gap-2.5 transition-colors group">
-                                                        <div className="w-6 h-6 rounded-md bg-red-50 text-red-500 flex items-center justify-center group-hover:bg-red-500 group-hover:text-white transition-colors"><FileText size={12} /></div> PDF
-                                                    </button>
-                                                    <button onClick={() => { handleDownloadWord(); setIsExportOpen(false); }} className="w-full text-left px-3 py-2.5 text-[12px] font-bold text-slate-700 hover:bg-slate-50 hover:text-indigo-600 rounded-xl flex items-center gap-2.5 transition-colors group">
-                                                        <div className="w-6 h-6 rounded-md bg-blue-50 text-blue-500 flex items-center justify-center group-hover:bg-blue-500 group-hover:text-white transition-colors"><FileText size={12} /></div> Word
-                                                    </button>
-                                                </>
-                                            )}
+                                            {/* APPLE FIX: PDF та Word доступні для ВСІХ табів */}
+                                            <button onClick={() => { handleDownloadPDF(); setIsExportOpen(false); }} className="w-full text-left px-3 py-2.5 text-[12px] font-bold text-slate-700 hover:bg-slate-50 hover:text-indigo-600 rounded-xl flex items-center gap-2.5 transition-colors group">
+                                                <div className="w-6 h-6 rounded-md bg-red-50 text-red-500 flex items-center justify-center group-hover:bg-red-500 group-hover:text-white transition-colors"><FileText size={12} /></div> PDF Document
+                                            </button>
+                                            <button onClick={() => { handleDownloadWord(); setIsExportOpen(false); }} className="w-full text-left px-3 py-2.5 text-[12px] font-bold text-slate-700 hover:bg-slate-50 hover:text-indigo-600 rounded-xl flex items-center gap-2.5 transition-colors group">
+                                                <div className="w-6 h-6 rounded-md bg-blue-50 text-blue-500 flex items-center justify-center group-hover:bg-blue-500 group-hover:text-white transition-colors"><FileText size={12} /></div> Word Document
+                                            </button>
+                                            <div className="h-px bg-slate-100 my-1 mx-2"></div>
                                             <button onClick={() => { handleDownload(); setIsExportOpen(false); }} className="w-full text-left px-3 py-2.5 text-[12px] font-bold text-slate-700 hover:bg-slate-50 hover:text-indigo-600 rounded-xl flex items-center gap-2.5 transition-colors group">
                                                 <div className="w-6 h-6 rounded-md bg-slate-100 text-slate-500 flex items-center justify-center group-hover:bg-slate-700 group-hover:text-white transition-colors"><FileText size={12} /></div> Plain Text
                                             </button>

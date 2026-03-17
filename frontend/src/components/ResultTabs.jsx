@@ -92,90 +92,66 @@ export default function ResultTabs({ results, setResults, resumeText, jobText, a
         }
     };
 
-    const handleDownload = () => {
-        let textToDownload = '';
-        let filename = '';
-        if (activeTab === 'resume') {
-            textToDownload = results.resume;
-            filename = 'Tailored_Resume.txt';
-        } else if (activeTab === 'coverLetter') {
-            textToDownload = results.coverLetter;
-            filename = 'Cover_Letter.txt';
-        } else if (activeTab === 'interview') {
-            textToDownload = results.interview;
-            filename = 'Interview_Prep.txt';
-        } else if (activeTab === 'research') {
-            textToDownload = results.research;
-            filename = 'Company_Research.txt';
+    // 🛡️ СЕНЬЙОРНА ЛОГІКА: Універсальна підготовка тексту для БУДЬ-ЯКОГО таба
+    const getActiveContentAndFilename = (extension) => {
+        let text = '';
+        let baseName = 'Document';
+
+        if (activeTab === 'resume') { text = results.resume; baseName = 'Tailored_Resume'; }
+        else if (activeTab === 'coverLetter') { text = results.coverLetter; baseName = 'Cover_Letter'; }
+        else if (activeTab === 'interview') { text = results.interview; baseName = 'Interview_Prep'; }
+        else if (activeTab === 'research') { text = results.research; baseName = 'Company_Research'; }
+
+        // Тотальна зачистка від Markdown (вбиваємо зірочки, щоб PDF і Word були чистими)
+        const cleanText = sanitizeForPlainText(text);
+
+        // Якщо це резюме, намагаємося додати ім'я кандидата у назву файлу
+        if (activeTab === 'resume' && results.candidate_name && results.candidate_name !== 'Candidate') {
+            baseName = `${results.candidate_name.replace(/\s+/g, '_')}_Resume`;
         }
 
-        // Використовуємо Рівень 2 (Plain Text)
-        const cleanText = sanitizeForPlainText(textToDownload);
+        return { cleanText, filename: `${baseName}.${extension}` };
+    };
+
+    const handleDownload = () => {
+        const { cleanText, filename } = getActiveContentAndFilename('txt');
         const blob = new Blob([cleanText], { type: 'text/plain;charset=utf-8' });
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
-        link.href = url;
-        link.download = filename;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
+        link.href = url; link.download = filename;
+        document.body.appendChild(link); link.click();
+        document.body.removeChild(link); URL.revokeObjectURL(url);
     };
 
     const handleDownloadWord = async () => {
         try {
-            const filename = `${(results.candidate_name || 'Candidate').replace(/\s+/g, '_')}_Resume.docx`;
-
-            // Використовуємо Рівень 1 (Clean Markdown)
+            const { cleanText, filename } = getActiveContentAndFilename('docx');
             const response = await axios.post(`${API_BASE}/export-docx`, {
-                markdown_text: sanitizeForDocument(results.resume)
-            }, {
-                responseType: 'blob'
-            });
+                markdown_text: cleanText // ВІДПРАВЛЯЄМО АБСОЛЮТНО ЧИСТИЙ ТЕКСТ
+            }, { responseType: 'blob' });
 
             const url = window.URL.createObjectURL(new Blob([response.data]));
             const link = document.createElement('a');
-            link.href = url;
-            link.setAttribute('download', filename);
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
-            window.URL.revokeObjectURL(url);
+            link.href = url; link.setAttribute('download', filename);
+            document.body.appendChild(link); link.click(); link.remove();
         } catch (error) {
             console.error('DOCX Export failed:', error);
-            alert('Failed to export Word document. Please try again.');
+            alert('Failed to export Word document.');
         }
     };
 
     const handleDownloadPDF = async () => {
         try {
-            // Використовуємо Рівень 1 (Clean Markdown)
-            const cleanMarkdown = sanitizeForDocument(results.resume);
-
-            const markdownLines = cleanMarkdown.split('\n');
-            const firstLine = markdownLines.find(line => line.trim() !== '') || '';
-            const nameFromMarkdown = firstLine.replace(/[#*]/g, '').trim();
-
-            const safeName = (results.candidate_name && results.candidate_name !== 'Candidate')
-                ? results.candidate_name
-                : nameFromMarkdown;
-
-            const filename = `${safeName.replace(/\s+/g, '_')}_Resume`;
-
+            const { cleanText, filename } = getActiveContentAndFilename('pdf');
             const response = await axios.post(`${API_BASE}/export-pdf`, {
-                markdown_text: cleanMarkdown,
-                filename: filename
-            }, {
-                responseType: 'blob'
-            });
+                markdown_text: cleanText, // ВІДПРАВЛЯЄМО АБСОЛЮТНО ЧИСТИЙ ТЕКСТ
+                filename: filename.replace('.pdf', '')
+            }, { responseType: 'blob' });
 
             const url = window.URL.createObjectURL(new Blob([response.data]));
             const link = document.createElement('a');
-            link.href = url;
-            link.setAttribute('download', `${filename}.pdf`);
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
+            link.href = url; link.setAttribute('download', filename);
+            document.body.appendChild(link); link.click(); link.remove();
         } catch (error) {
             console.error('PDF Export failed:', error);
             alert('Failed to generate PDF. Please use TXT or Word for now.');

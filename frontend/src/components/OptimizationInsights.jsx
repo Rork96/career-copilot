@@ -266,7 +266,9 @@ export default function OptimizationInsights({ results = {}, insightTab, setInsi
                         ))}
                     </div>
                 </motion.div>
+
             )}
+
         </div>
     );
 }

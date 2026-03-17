@@ -1,11 +1,32 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { motion, AnimatePresence } from 'framer-motion';
-// APPLE FIX: Додав MessageSquarePlus сюди 👇
 import { ChevronDown, ShieldCheck, Info, X as CloseIcon, AlertTriangle, Sparkles, CheckCircle2, Zap, MessageSquarePlus } from 'lucide-react';
+
+// База знань ATS
+const atsTips = [
+    "Keywords hold more weight when placed naturally inside your Work Experience bullet points rather than a generic skills list.",
+    "ATS algorithms often struggle with columns and tables. Keep your formatting clean, linear, and predictable.",
+    "Exact phrasing matters. If the job description asks for 'Project Management', do not just write 'Managed Projects'.",
+    "Spell out acronyms at least once (e.g., 'Key Performance Indicators (KPI)') to ensure all ATS parsers catch them.",
+    "Avoid putting critical information in headers or footers, as many ATS parsers completely ignore those sections."
+];
 
 export default function ComparisonMatrix({ matrixData, matrixPage, setMatrixPage, isGenerating, potentialBoost = 1 }) {
     const [selectedSkill, setSelectedSkill] = useState(null);
+    const [tipIndex, setTipIndex] = useState(0);
+
+    // APPLE MAGIC: Автоматична ротація підказок кожні 8 секунд
+    useEffect(() => {
+        const timer = setInterval(() => {
+            setTipIndex((prev) => (prev + 1) % atsTips.length);
+        }, 8000);
+        return () => clearInterval(timer);
+    }, []);
+
+    const handleTipClick = () => {
+        setTipIndex((prev) => (prev + 1) % atsTips.length);
+    };
 
     if (isGenerating || !matrixData || matrixData.length === 0) {
         return (
@@ -30,12 +51,11 @@ export default function ComparisonMatrix({ matrixData, matrixPage, setMatrixPage
         );
     }
 
-    // APPLE LOGIC: Розумне сортування (Missing -> AI Optimized -> Verified)
     const sortedData = [...matrixData].sort((a, b) => {
         const getRank = (item) => {
-            if (!item.in_tailored) return 1; // Missing (Пріоритет 1)
-            if (!item.in_original && item.in_tailored) return 2; // AI Optimized (Пріоритет 2)
-            return 3; // Verified (Пріоритет 3)
+            if (!item.in_tailored) return 1;
+            if (!item.in_original && item.in_tailored) return 2;
+            return 3;
         };
         return getRank(a) - getRank(b);
     });
@@ -52,10 +72,7 @@ export default function ComparisonMatrix({ matrixData, matrixPage, setMatrixPage
                 </h4>
             </div>
 
-            {/* Matrix Container */}
             <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm flex flex-col relative overflow-hidden h-[420px]">
-
-                {/* Table View */}
                 <div className="flex-1 relative overflow-y-auto hide-scrollbar">
                     <table className="w-full text-left border-collapse table-fixed">
                         <thead className="sticky top-0 z-10 bg-slate-50/90 backdrop-blur-md border-b border-slate-200/60">
@@ -89,12 +106,12 @@ export default function ComparisonMatrix({ matrixData, matrixPage, setMatrixPage
                                             <td className="px-4 py-3.5 text-right">
                                                 <div className="flex items-center justify-end gap-2">
                                                     {isVerified && (
-                                                        <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest px-2 py-1 bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-md flex items-center gap-1 shrink-0" title="Found in your original resume">
+                                                        <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest px-2 py-1 bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-md flex items-center gap-1 shrink-0">
                                                             <CheckCircle2 size={10} /> Verified
                                                         </span>
                                                     )}
                                                     {isAI && (
-                                                        <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest px-2 py-1 bg-indigo-50 text-indigo-600 border border-indigo-100 rounded-md flex items-center gap-1 shrink-0" title="AI translated your experience to match ATS">
+                                                        <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest px-2 py-1 bg-indigo-50 text-indigo-600 border border-indigo-100 rounded-md flex items-center gap-1 shrink-0">
                                                             <Sparkles size={10} /> AI Optimized
                                                         </span>
                                                     )}
@@ -114,7 +131,6 @@ export default function ComparisonMatrix({ matrixData, matrixPage, setMatrixPage
                     </table>
                 </div>
 
-                {/* Fixed Pagination Footer */}
                 <div className="bg-slate-50/50 border-t border-slate-200/60 p-3 flex items-center justify-between shrink-0">
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest pl-2">
                         Page {matrixPage + 1} of {totalPages}
@@ -137,18 +153,35 @@ export default function ComparisonMatrix({ matrixData, matrixPage, setMatrixPage
                     </div>
                 </div>
 
-                {/* ATS Insider Tip */}
-                <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-t border-amber-100 p-3 shrink-0 flex items-start gap-3">
-                    <div className="w-6 h-6 rounded-full bg-amber-100 flex items-center justify-center shrink-0 mt-0.5">
+                {/* 🍏 APPLE MAGIC: Interactive & Auto-Rotating Tips */}
+                <div
+                    onClick={handleTipClick}
+                    className="bg-gradient-to-r from-amber-50 to-orange-50 border-t border-amber-100 p-3.5 shrink-0 flex items-start gap-3 transition-all cursor-pointer hover:bg-amber-100/50 group"
+                    title="Click for next tip"
+                >
+                    <div className="w-6 h-6 rounded-full bg-amber-100 flex items-center justify-center shrink-0 mt-0.5 shadow-sm group-hover:scale-110 transition-transform">
                         <Zap size={12} className="text-amber-600" />
                     </div>
-                    <div>
-                        <h5 className="text-[10px] font-black text-amber-900 uppercase tracking-widest mb-0.5">ATS Insider Tip</h5>
-                        <p className="text-[11px] text-amber-800/80 leading-snug font-medium">Keywords hold more weight when placed naturally inside your <span className="font-bold">Work Experience</span> bullet points rather than a generic skills list.</p>
+                    <div className="flex-1">
+                        <div className="flex justify-between items-center mb-0.5">
+                            <h5 className="text-[10px] font-black text-amber-900 uppercase tracking-widest">ATS Insider Tip</h5>
+                            <span className="text-[8px] font-bold text-amber-500/50 uppercase">Click for more</span>
+                        </div>
+                        <AnimatePresence mode="wait">
+                            <motion.p
+                                key={tipIndex}
+                                initial={{ opacity: 0, x: 5 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: -5 }}
+                                transition={{ duration: 0.2 }}
+                                className="text-[11px] text-amber-800/90 leading-snug font-medium min-h-[32px]"
+                            >
+                                {atsTips[tipIndex]}
+                            </motion.p>
+                        </AnimatePresence>
                     </div>
                 </div>
 
-                {/* Overlay Drawer for "Why this matters" */}
                 <AnimatePresence>
                     {selectedSkill && (
                         <motion.div

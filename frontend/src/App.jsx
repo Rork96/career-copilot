@@ -91,11 +91,18 @@ function App() {
     const savedKey = localStorage.getItem('geminiApiKey');
     if (savedKey) {
       setApiKey(savedKey);
-    } else {
-      setIsApiModalOpen(true);
+      axios.defaults.headers.common['X-Gemini-API-Key'] = savedKey;
     }
 
     const savedResults = localStorage.getItem('savedResults');
+    if (savedResults && currentScreen === 'landing') {
+      try {
+        setResults(JSON.parse(savedResults));
+        setCurrentScreen('results');
+      } catch (e) {
+        console.error("Failed to restore session", e);
+      }
+    }
     const savedResume = localStorage.getItem('savedResumeText');
     const savedJob = localStorage.getItem('savedJobText');
 
@@ -346,6 +353,7 @@ function App() {
     }
   };
 
+  // 3. ПРЕМІАЛЬНА ЛОГІКА ДЛЯ ЛЕНДІНГУ
   if (currentScreen === 'landing') {
     return (
       <AnimatePresence mode="popLayout">
@@ -356,16 +364,23 @@ function App() {
           exit={{ opacity: 0 }}
         >
           <Landing onStart={() => {
-            if (!apiKey) {
+            const savedKey = localStorage.getItem('geminiApiKey');
+            if (!savedKey) {
+              // Якщо ключа немає — активуємо вхід через модалку
               setIsApiModalOpen(true);
             } else {
+              // Якщо ключ вже є — летимо відразу в роботу
               setCurrentScreen('workspace');
             }
           }} />
-          {!apiKey && isApiModalOpen && (
+
+          {/* Показуємо Shield тільки коли натиснули старт і немає ключа */}
+          {isApiModalOpen && !apiKey && (
             <WelcomeShield
               onComplete={(key) => {
                 setApiKey(key);
+                localStorage.setItem('geminiApiKey', key);
+                // Налаштовуємо axios відразу для майбутніх запитів
                 axios.defaults.headers.common['X-Gemini-API-Key'] = key;
                 setIsApiModalOpen(false);
                 setCurrentScreen('workspace');
